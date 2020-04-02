@@ -1,6 +1,13 @@
 # e-puck-2-footy
 Semestrial mini-project
 
+# Etude brève des images
++ Document d'étude sur la manière d'analyser les images
++ Plusieurs images exemples
++ Ajout de la fonctionnalité d'envoyer des images vers l'ordinateur, hors exemple du cours
+Il est possible d'acquérir les images de manière statique et d'en visionner. Il faut maintenant étudier comment les traiter, après avoir pris quelques échantillons d'une vue en 360°.
+
+
 # Première acquisition d'image
 + Lecture d'une image en nuance de rouge
 + Essais de détection de la balle et du but rouge

@@ -69,12 +69,16 @@ static THD_FUNCTION(process_image, arg)
         for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
         	image[i/2] = (uint8_t)img_raw_RGB565_pixels[i]&0xF8; // red pixels
 
-		/// @PI: traiter l'image
-        /// - détection de la balle et du but au début
-        /// - éventuellement deviner la distance de la balle
-        send_computer = !send_computer;
-        if(send_computer)
-        	debug_send_uint8_array_to_computer(image, IMAGE_BUFFER_SIZE);
+		/// @PI: ici traiter l'image
+
+
+        //send_computer = !send_computer;
+        //if(send_computer)
+        	//debug_send_uint8_array_to_computer(image, IMAGE_BUFFER_SIZE);
+        	debug_send_for_printlinke_uint16(img_raw_RGB565_pixels, IMAGE_BUFFER_SIZE);
+        //chSysLock();
+        //debug_am_i_responding();
+        //chSysUnlock();
     }
 }
 
