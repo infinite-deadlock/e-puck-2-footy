@@ -1,0 +1,6 @@
+*.o.d
+*.a
+
+**/build/
+**/Scripts_python du cours
+lib/e-puck2_main-processor/
