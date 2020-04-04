@@ -19,6 +19,8 @@
 // this project files
 #include "debug.h"
 #include "sensors.h"
+#include "detection.h"
+#include "move.h"
 
 
 static void serial_start(void)
@@ -46,6 +48,10 @@ int main(void)
 	motors_init();		// motors starting
 
 	sensors_start();	// start all sensors for this project
+	move_init();		// handle movements
+
+	//1. Find the ball
+	findBall();
 
 	while(1)
 	{

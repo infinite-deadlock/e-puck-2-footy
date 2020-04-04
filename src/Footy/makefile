@@ -12,6 +12,8 @@ GLOBAL_PATH = ../../lib/e-puck2_main-processor
 CSRC += ./main.c \
 		./debug.c \
 		./sensors.c \
+		./detection.c \
+		./move.c \
 		#./pi_regulator.c \
 		#./process_image.c \
 
