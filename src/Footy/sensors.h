@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 void sensors_start(void);
+void * central_get_semaphore_authorization_move(void);
 
 #ifdef __cplusplus
 }

@@ -19,6 +19,7 @@
 // this project files
 #include "debug.h"
 #include "sensors.h"
+#include "move.h"
 
 
 static void serial_start(void)
@@ -47,11 +48,7 @@ int main(void)
 
 	sensors_start();	// start all sensors for this project
 
-	while(1)
-	{
-		chThdSleepMilliseconds(1000);
-		//debug_am_i_responding();
-	}
+	central_control_loop();
 }
 
 // stack guard

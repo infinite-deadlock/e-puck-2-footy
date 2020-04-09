@@ -1,6 +1,12 @@
 # e-puck-2-footy
 Semestrial mini-project
 
+# Rotation de détection
++ Systèmes de rotation opérationnel
++ Prise d'images possible de manière correcte, mais il manque l'arène
+Il est possible d'acquérir les images de manière statique et d'en visionner. Un dossier en continent des échantillons sous un forme exotique.
+Il reste le traitement d'images à faire pour que la phase initiale soit complète.
+
 # Etude brève des images
 + Document d'étude sur la manière d'analyser les images
 + Plusieurs images exemples

@@ -7,11 +7,21 @@ void debug_send_uint8_array_to_computer(uint8_t* data, uint16_t size)
 	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*) data, size);
 }
 
-void debug_send_for_printlinke_uint16(uint16_t * data, uint16_t size)
+void debug_send_uint32_to_computer(uint32_t data)
+{
+	chprintf((BaseSequentialStream *)&SD3, "new data: %d\n", data);
+}
+
+void debug_send_for_printlinke_couple_uint8(uint8_t * data, uint16_t size)
 {
 	chprintf((BaseSequentialStream *)&SD3, "NEW_IMAGE:\n");
-	for(uint16_t i = 0 ; i < size; ++i)
-		chprintf((BaseSequentialStream *)&SD3, "%d\n", data[i]);
+
+	for(uint16_t i = 0 ; i < size / 2 ; ++i)
+		chprintf((BaseSequentialStream *)&SD3, "%d %d\n", data[i], data[i]);
+
+	if((size & 1) != 0)
+		chprintf((BaseSequentialStream *)&SD3, "%d SINGLE !\n", data[(size / 2) + 1]);
+
 	chprintf((BaseSequentialStream *)&SD3, "END_IMAGE:\n");
 }
 
