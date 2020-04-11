@@ -13,7 +13,7 @@
 
 //#define SPEED_FACTOR 			MOTOR_STEPS_PER_TURN / (2 * M_PI * (WHEEL_DIAMETER / 2))
 //#define MOVE_DURATION_FACTOR	1000 * ((M_PI / 180.) * (WHEEL_DISTANCE / 2))
-#define SPEED_FACTOR 			7.725967884063720703125		// exact rounded value in float
+#define SPEED_FACTOR 			7.76365566253662109375		// exact rounded value in float
 #define MOVE_DURATION_FACTOR	462.512251777
 
 

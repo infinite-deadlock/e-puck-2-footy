@@ -61,7 +61,7 @@ static THD_FUNCTION(process_image, arg)
     (void)arg;
 
 	uint8_t * img_raw_RGB565_pixels = NULL;
-	uint8_t   image[IMAGE_BUFFER_SIZE] = {0};
+	uint8_t   image[2 * IMAGE_BUFFER_SIZE] = {0};
 
 	//static bool s_send_computer = true;
     while(1)
@@ -80,7 +80,7 @@ static THD_FUNCTION(process_image, arg)
         //s_send_computer = !s_send_computer;
         //if(s_send_computer)
         	//debug_send_uint8_array_to_computer(image, IMAGE_BUFFER_SIZE);
-        	debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, IMAGE_BUFFER_SIZE);
+        	debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
         //debug_am_i_responding();
     }
 }
