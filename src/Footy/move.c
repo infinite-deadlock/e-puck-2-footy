@@ -50,7 +50,5 @@ uint16_t move_rotate(uint16_t angle, int16_t speed)
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
 
-	debug_send_uint32_to_computer(chVTGetSystemTime() - time_start);
-
 	return s_move_duration - (chVTGetSystemTime() - time_start);
 }

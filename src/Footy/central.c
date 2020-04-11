@@ -16,7 +16,7 @@ void central_control_loop(void)
 	// Ce symptôme disparaît quand on essaye de connecter l'e-puck
 	chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
-	while(1)
+	/*while(1)
 	{
 		for(uint8_t i = 0 ; i < 15 ; ++i)
 		{
@@ -26,7 +26,8 @@ void central_control_loop(void)
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
-			chThdSleepMilliseconds(250);
+			//chThdSleepMilliseconds(250);
+			chThdSleepMilliseconds(1100);
 
 			chBSemSignal(&central_semaphore_image_request);
 			chBSemWait(central_get_semaphore_authorization_move());
@@ -34,6 +35,12 @@ void central_control_loop(void)
 		chThdSleepMilliseconds(6000);
 
 		//debug_am_i_responding();
+	}*/
+	while(1)
+	{
+		chBSemSignal(&central_semaphore_image_request);
+		chBSemWait(central_get_semaphore_authorization_move());
+		chThdSleepMilliseconds(6000);
 	}
 }
 

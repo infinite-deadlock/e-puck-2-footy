@@ -1,6 +1,12 @@
 # e-puck-2-footy
 Semestrial mini-project
 
+# Verification de la lecture de pixel
++ Correction de la transmission d'informations
++ Création d'un porgamme indépendant d'analyser
++ Etude des courbes par interprétation sur graphes
+Il ne reste plus que l'algorithme de détection à implémenter pour pouvroir correctement localiser les balles
+
 # Rotation de détection
 + Systèmes de rotation opérationnel
 + Prise d'images possible de manière correcte, mais il manque l'arène

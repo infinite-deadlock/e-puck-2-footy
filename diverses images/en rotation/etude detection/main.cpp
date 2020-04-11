@@ -113,7 +113,7 @@ void export_tab_images_to_csv(vector<vector<uint16_t>> tab_images)
 
 int main()
 {
-    vector<vector<uint16_t>> tab_images = extract_tab_images("balle_pos_45deg.txt");
+    vector<vector<uint16_t>> tab_images = extract_tab_images("just_test.txt");
     export_tab_images_to_csv(tab_images);
 
     return 0;

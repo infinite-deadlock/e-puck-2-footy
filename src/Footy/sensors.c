@@ -32,9 +32,12 @@ static THD_FUNCTION(acquire_image, arg)
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-	// acquire a line from the camera, pixel 0 in line 10 to pixel IMAGE_BUFFER_SIZE in line 11
+	// acquire a line from the camera, from pixel 0 in line IMAGE_LINE_HEIGHT of size IMAGE_BUFFER_SIZE x 2 // @PI a revoir
     // caution: two lines asked for internal reasons
-	po8030_advanced_config(FORMAT_RGB565, 0, IMAGE_LINE_HEIGHT, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1);
+
+	if(po8030_advanced_config(FORMAT_RGB565, 0, IMAGE_LINE_HEIGHT, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1) != MSG_OK)
+		chprintf((BaseSequentialStream *)&SD3, "Error po8030_advanced_config\n");
+
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
 	dcmi_prepare();

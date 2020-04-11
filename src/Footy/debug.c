@@ -16,8 +16,8 @@ void debug_send_for_printlinke_couple_uint8(uint8_t * data, uint16_t size)
 {
 	chprintf((BaseSequentialStream *)&SD3, "NEW_IMAGE:\n");
 
-	for(uint16_t i = 0 ; i < size / 2 ; ++i)
-		chprintf((BaseSequentialStream *)&SD3, "%d %d\n", data[i], data[i]);
+	for(uint16_t i = 0 ; i < size ; i += 2)
+		chprintf((BaseSequentialStream *)&SD3, "%d %d\n", data[i], data[i + 1]);
 
 	if((size & 1) != 0)
 		chprintf((BaseSequentialStream *)&SD3, "%d SINGLE !\n", data[(size / 2) + 1]);
