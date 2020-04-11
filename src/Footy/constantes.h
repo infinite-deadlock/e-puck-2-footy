@@ -4,7 +4,7 @@
 #include <math.h>
 
 #define ANGLE_MAX					32760		// counterclockwise =360*91 max resolution for calculation without overflow int16 -> unit equals 1°/91~=39.6''
-#define WHEEL_DIAMETER				41			// in mm
+#define WHEEL_DIAMETER				41			// wheel_diameter, in mm (official 41.2)
 #define WHEEL_DISTANCE				53			// in mm
 #define MOTOR_STEPS_PER_TURN		1000
 #define EPUCK_ROTATION_RES			WHEEL_DIAMETER/(WHEEL_DISTANCE/2)/MOTOR_STEPS_PER_TURN*ANGLE_MAX/2 //angle by step of both motors (opposite direction) ~50.7 (same unit as ANGLE_MAX)
