@@ -13,8 +13,8 @@
 
 //#define SPEED_FACTOR 			MOTOR_STEPS_PER_TURN / (2 * M_PI * (WHEEL_DIAMETER / 2))
 //#define MOVE_DURATION_FACTOR	1000 * ((M_PI / 180.) * (WHEEL_DISTANCE / 2))
-#define SPEED_FACTOR 			7.76365566253662109375		// exact rounded value in float
-#define MOVE_DURATION_FACTOR	462.512251777
+#define SPEED_FACTOR 			7.76365566253662109375f		// exact rounded value in float
+#define MOVE_DURATION_FACTOR	462.512251777f
 
 
 uint16_t move_translate(uint16_t dist, int16_t speed)
@@ -40,8 +40,8 @@ uint16_t move_rotate(uint16_t angle, int16_t speed)
 		s_robot_speed = speed * SPEED_FACTOR;
 	}
 
-	left_motor_set_speed(-s_robot_speed);
-	right_motor_set_speed(s_robot_speed);
+	left_motor_set_speed(s_robot_speed);
+	right_motor_set_speed(-s_robot_speed);
 
 
 	systime_t time_start = chVTGetSystemTime();

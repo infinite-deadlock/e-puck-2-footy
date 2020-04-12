@@ -1,5 +1,8 @@
 #include "sensors.h"
 
+//  Standard Library
+#include <math.h>
+
 // ChibiOS & others
 #include "ch.h"						// main include files
 #include "hal.h"					// Hardware Abstraction Layer subsystem header
@@ -37,6 +40,8 @@ static THD_FUNCTION(acquire_image, arg)
 
 	if(po8030_advanced_config(FORMAT_RGB565, 0, IMAGE_LINE_HEIGHT, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1) != MSG_OK)
 		chprintf((BaseSequentialStream *)&SD3, "Error po8030_advanced_config\n");
+	//if(po8030_set_awb(0) != MSG_OK)
+		//chprintf((BaseSequentialStream *)&SD3, "Error po8030_set_awb\n");
 
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
@@ -64,7 +69,14 @@ static THD_FUNCTION(process_image, arg)
     (void)arg;
 
 	uint8_t * img_raw_RGB565_pixels = NULL;
-	uint8_t   image[2 * IMAGE_BUFFER_SIZE] = {0};
+	uint8_t   red_pixels[IMAGE_BUFFER_SIZE] = {0};
+
+	int8_t diff_pixels;
+
+	int8_t best_diff_pixels_positiv;
+	int8_t best_diff_pixels_negativ;
+	float best_angle_positiv;
+	float best_angle_negativ;
 
 	//static bool s_send_computer = true;
     while(1)
@@ -74,17 +86,53 @@ static THD_FUNCTION(process_image, arg)
 		// get the pointer to the array filled with the last image in RGB565
         img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
+
         for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
-        	image[i/2] = (uint8_t)img_raw_RGB565_pixels[i]&0xF8; // red pixels
+        	red_pixels[i/2] = (img_raw_RGB565_pixels[i] >> 3) & 31; // red pixels
 
-        //debug_am_i_responding();
+        // le problème est que maintenant qu'il y a l'ajout des angles, c'est le foncitonnement de detection qui semble ne plus jouer
+        /*best_diff_pixels_positiv = 0;
+        best_diff_pixels_negativ = 0;
+        for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE - 3 ; ++i)
+        {
+        	diff_pixels = red_pixels[i] - red_pixels[i + 3];
+        	if(abs(diff_pixels) >= 8)
+        	{
+        		chprintf((BaseSequentialStream *)&SD3, "found %d\n", diff_pixels >= 0);
+        		if(diff_pixels > best_diff_pixels_positiv)
+        		{
+        			best_diff_pixels_positiv = diff_pixels;
 
+					if(i <= 320)
+						best_angle_positiv = -(180 * (atan((1-((float)i/320))*0.414213562)) / M_PI);
+					else
+						best_angle_positiv = (180 * (atan((((float)i/320)-1)*0.414213562)) / M_PI);
+        		}
+        		else if(diff_pixels < best_diff_pixels_negativ)
+        		{
+        			best_diff_pixels_negativ = diff_pixels;
 
-        //s_send_computer = !s_send_computer;
-        //if(s_send_computer)
-        	//debug_send_uint8_array_to_computer(image, IMAGE_BUFFER_SIZE);
-        	debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
-        //debug_am_i_responding();
+					if(i <= 320)
+						best_angle_negativ = -(180 * (atan((1-((float)i/320))*0.414213562)) / M_PI);
+					else
+						best_angle_negativ = (180 * (atan((((float)i/320)-1)*0.414213562)) / M_PI);
+        		}
+
+        	}
+        }
+
+        if(best_diff_pixels_positiv != 0)
+        {
+        	chprintf((BaseSequentialStream *)&SD3, "found + %f\n", best_angle_positiv);
+        }
+        if(best_diff_pixels_negativ != 0)
+        {
+        	chprintf((BaseSequentialStream *)&SD3, "found - %f\n", best_angle_negativ);
+        }*/
+
+		//debug_send_uint8_array_to_computer(red_pixels, IMAGE_BUFFER_SIZE);
+
+		debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
     }
 }
 

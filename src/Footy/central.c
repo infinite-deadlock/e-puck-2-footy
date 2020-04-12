@@ -14,10 +14,11 @@ void central_control_loop(void)
 {
 	//PI: pour une raison peu connue, le robot ne fera pas assez d'étapes au premier tour
 	// Ce symptôme disparaît quand on essaye de connecter l'e-puck
-	chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
+	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
 	/*while(1)
 	{
+		chThdSleepMilliseconds(5000);
 		for(uint8_t i = 0 ; i < 15 ; ++i)
 		{
 			// speed 50 in 222 ms
@@ -32,7 +33,6 @@ void central_control_loop(void)
 			chBSemSignal(&central_semaphore_image_request);
 			chBSemWait(central_get_semaphore_authorization_move());
 		}
-		chThdSleepMilliseconds(6000);
 
 		//debug_am_i_responding();
 	}*/
@@ -42,6 +42,11 @@ void central_control_loop(void)
 		chBSemWait(central_get_semaphore_authorization_move());
 		chThdSleepMilliseconds(6000);
 	}
+}
+
+void central_report_found_ball_start(float local_angle)
+{
+
 }
 
 void * central_get_semaphore_authorization_acquire(void)
