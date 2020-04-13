@@ -12,17 +12,20 @@
 #include "constantes.h"
 
 
-//#define SPEED_FACTOR 			MOTOR_STEPS_PER_TURN / (2 * M_PI * (WHEEL_DIAMETER / 2))
 //#define MOVE_DURATION_FACTOR	1000 * ((M_PI / 180.) * (WHEEL_DISTANCE / 2))
-#define SPEED_FACTOR 			7.76365566253662109375f		// exact rounded value in float
 #define MOVE_DURATION_FACTOR	462.512251777f
 
 #define OBSTACLE_DETECT_DELAY	150	// in ms
+
+// global variables to this module
+static float s_robot_angle = 0.f;
 
 
 void move_until_obstacle(int16_t speed)
 {
 	bool is_moving = false;
+
+	speed = speed > MAX_SPEED_MMPS ? MAX_SPEED_MMPS : speed;
 	while(1)
 	{
 		if(sensors_can_move())
@@ -55,6 +58,8 @@ uint16_t move_rotate(float angle, int16_t speed)
 	static float s_angle_previous = 0;
 	static int16_t s_speed_previous = 0;
 
+	speed = speed > MAX_SPEED_MMPS ? MAX_SPEED_MMPS : speed;
+
 	// recompute with floats only if required
 	if(angle != s_angle_previous || speed != s_speed_previous)
 	{
@@ -72,6 +77,7 @@ uint16_t move_rotate(float angle, int16_t speed)
 	right_motor_set_speed(-s_robot_speed);
 
 
+	s_robot_angle += angle;
 	systime_t time_start = chVTGetSystemTime();
 
 	chThdSleepMilliseconds(s_move_duration);
@@ -79,4 +85,9 @@ uint16_t move_rotate(float angle, int16_t speed)
 	right_motor_set_speed(0);
 
 	return s_move_duration - (chVTGetSystemTime() - time_start);
+}
+
+float getAngle(void)
+{
+	return s_robot_angle;
 }

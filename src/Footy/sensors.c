@@ -20,13 +20,14 @@
 #include "central.h"
 
 // local defines
-#define IMAGE_BUFFER_SIZE	640			// size of the image acquired, in RGB565 pixel
-#define IMAGE_LINE_HEIGHT	240			// captured line height
+#define IMAGE_BUFFER_SIZE	PO8030_MAX_WIDTH			// size of the image acquired, in RGB565 pixel =640
+#define IMAGE_LINE_HEIGHT	PO8030_MAX_HEIGHT/2			// captured line height = 240
 
 #define NO_RISE_FALL_FOUND_POS          IMAGE_BUFFER_SIZE + 1
 #define GREEN_PIXEL_RISE_FALL_THRESHOLD (int16_t)(0.25 * 63)
 #define THRESHOLD_BALL_COLOR_IN_GREEN   13
 #define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
+#define DERIVATION_PERIOD_DELTA			2
 
 #define	MOVE_SECURITY_SPACE				50
 
@@ -36,8 +37,12 @@ static BSEMAPHORE_DECL(sensors_semaphore_image_ready_for_process, TRUE);
 static BSEMAPHORE_DECL(sensors_semaphore_image_completed, TRUE);
 
 // global variables to this module
-static bool sensors_ball_found = false;
-static float sensors_ball_angle;
+static bool s_sensors_ball_found = false;///@Pierre: C'est tout bête mais le s_ est une bonne convention je toruve pour différencier les variables statiques
+static bool s_sensors_ball_left_found = false;
+static bool s_sensors_ball_right_found = false;
+static float s_sensors_ball_angle;
+static float s_sensors_ball_left_angle;
+static float s_sensors_ball_right_angle;
 
 // local function prototypes
 float compute_angle_ball(uint16_t ball_middle_pos);
@@ -111,30 +116,45 @@ static THD_FUNCTION(process_image, arg)
 
 float compute_angle_ball(uint16_t ball_middle_pos)
 {
-    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
+    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;///@Pierre: c'est bien pour quand on programme mais ultimement on fera mieux de précalculer ces valeurs
 }
 
 void detection_in_image(uint8_t * green_pixels)
 {
     uint16_t last_fall_pos = NO_RISE_FALL_FOUND_POS;
     uint16_t sum;
-    int16_t pixel_derivative;
+    int16_t pixel_derivative = (int16_t)green_pixels[DERIVATION_PERIOD_DELTA*2];//compute initial slope with white wall hypothesis -> detect fall if ball cut
 
-    for(uint16_t i = 2 ; i < IMAGE_BUFFER_SIZE - 2 ; ++i)
+    for(uint16_t i = DERIVATION_PERIOD_DELTA ; i < IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA ; ++i)
     {
-        pixel_derivative = (int16_t)green_pixels[i + 2] - (int16_t)green_pixels[i - 2];
-        if(last_fall_pos < IMAGE_BUFFER_SIZE)   // if the beginning of a ball has been seen, we can look at the end of a ball
+        if(last_fall_pos != NO_RISE_FALL_FOUND_POS)   // if the beginning of a ball has been seen, we can look at the end of a ball
         {
             sum += green_pixels[i];
-            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD)
+            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD || i==IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA)//detect rise or cut ball
             {
                 if(sum < THRESHOLD_BALL_COLOR_IN_GREEN * (i - last_fall_pos))
                 {
-					sensors_ball_found = true;
-					sensors_ball_angle = compute_angle_ball((last_fall_pos + i) >> 1);
+                    if(last_fall_pos != DERIVATION_PERIOD_DELTA)
+                    {
+                    	s_sensors_ball_left_found = true;
+        				s_sensors_ball_left_angle = getAngle()+compute_angle_ball(last_fall_pos);//ball is not cut -> left edge found
+                    }
+                    if(i !=IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA)
+                    {
+                    	s_sensors_ball_right_found = true;
+        				s_sensors_ball_right_angle = getAngle()+compute_angle_ball(i);//ball is not cut -> right edge found
+                    }
 
-                    chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %d and %d\n", last_fall_pos, i);
-                    chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", sensors_ball_angle);
+                    chprintf((BaseSequentialStream *)&SD3, "detected edges are: %d and %d\n", last_fall_pos, i);
+                    chprintf((BaseSequentialStream *)&SD3, "angles are %f and %f\n", s_sensors_ball_left_angle, s_sensors_ball_right_angle);
+
+                    if(s_sensors_ball_left_found && s_sensors_ball_right_found)//the two edges (not cut) were found
+                    {
+                    	s_sensors_ball_found = true;
+                    	s_sensors_ball_angle = (s_sensors_ball_left_angle + s_sensors_ball_right_angle)/2.f;
+                        chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %f and %f degrees\n", s_sensors_ball_right_angle, s_sensors_ball_left_angle);
+                        chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", s_sensors_ball_angle);
+                    }
 
                     last_fall_pos = NO_RISE_FALL_FOUND_POS;
                 }
@@ -145,6 +165,7 @@ void detection_in_image(uint8_t * green_pixels)
             last_fall_pos = i;
             sum = 0;
         }
+        pixel_derivative = (int16_t)green_pixels[DERIVATION_PERIOD_DELTA + 2] - (int16_t)green_pixels[i - DERIVATION_PERIOD_DELTA];
     }
 }
 
@@ -159,14 +180,17 @@ void sensors_start(void)
 
 void sensors_set_ball_to_be_search(void)
 {
-	sensors_ball_found = false;
+	s_sensors_ball_found = false;
 }
 
-bool sensors_is_ball_found(float * ball_angle)
+bool sensors_is_ball_found(float * ball_angle, float * ball_seen_angle)
 {
-	if(sensors_ball_found)
-		*ball_angle = sensors_ball_angle;
-	return sensors_ball_found;
+	if(s_sensors_ball_found)
+	{
+		*ball_angle = s_sensors_ball_angle;
+		*ball_seen_angle = s_sensors_ball_left_angle - s_sensors_ball_right_angle;
+	}
+	return s_sensors_ball_found;
 }
 
 bool sensors_can_move(void)
