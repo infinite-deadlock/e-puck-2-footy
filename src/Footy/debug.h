@@ -13,7 +13,8 @@ extern "C" {
 
 
 void debug_am_i_responding(void);
-void debug_send_for_printlinke_uint16(uint16_t * data, uint16_t size);
+void debug_send_uint32_to_computer(uint32_t data);
+void debug_send_for_printlinke_couple_uint8(uint8_t * data, uint16_t size); // size is nb uint8_t
 void debug_send_uint8_array_to_computer(uint8_t* data, uint16_t size);
 
 

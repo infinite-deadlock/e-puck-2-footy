@@ -1,6 +1,28 @@
 # e-puck-2-footy
 Semestrial mini-project
 
+# Recherche et déplacement avec détection de collision
++ Déplacement avec possiblité d'arrêt si un obstacle se met devant
+Le robot peut désormais s'arrêter si on met un obstacle devant pendant qu'il fonce vers la balle
+
+# Détection de la balle
++ Corrections générales
++ Détection opérationnelle
++ Le robot s'oriente en direction de la balle
+La balle est correctement détectée et le robot s'oriente correctement avec elle
+
+# Verification de la lecture de pixel
++ Correction de la transmission d'informations
++ Création d'un porgamme indépendant d'analyser
++ Etude des courbes par interprétation sur graphes
+Il ne reste plus que l'algorithme de détection à implémenter pour pouvroir correctement localiser les balles
+
+# Rotation de détection
++ Systèmes de rotation opérationnel
++ Prise d'images possible de manière correcte, mais il manque l'arène
+Il est possible d'acquérir les images de manière statique et d'en visionner. Un dossier en continent des échantillons sous un forme exotique.
+Il reste le traitement d'images à faire pour que la phase initiale soit complète.
+
 # Etude brève des images
 + Document d'étude sur la manière d'analyser les images
 + Plusieurs images exemples

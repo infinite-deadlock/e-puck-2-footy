@@ -1,5 +1,5 @@
-#ifndef MOVE_H
-#define MOVE_H
+#ifndef MOVE_H_
+#define MOVE_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -9,45 +9,28 @@ extern "C" {
 #endif
 
 /**
-* @brief   Initializing thread to handle robot's movements
-*
-*/
-void move_init(void);
-
-/**
 * @brief   Rotate the robot
 *
-* @param angle				Relative angle of the desired rotation
+* @param angle				Relative angle of the desired rotation in deg
 * @param speed				Rotation speed of right wheel in step/s
-* @param wait				If true wait the end of the movement
 *
-* @return					Absolute angle of the robot
+* @return					Time difference between planned and executed [ms]
 *
 */
-uint16_t rotate(uint16_t angle, int16_t speed, bool wait);
+uint16_t move_rotate(float angle, int16_t speed);
 
 /**
 * @brief   Rotate the robot
 *
-* @param dist				Relative distance of the desired translation
 * @param speed				Translation speed of wheels in step/s
-* @param wait				If true wait the end of the movement
-*
-* @return					Absolute distance of the robot
 *
 */
-uint16_t translate(uint16_t dist, int16_t speed, bool wait);
+void move_until_obstacle(int16_t speed);
 
-/**
-* @brief   Get the absolute angle of the robot
-*
-* @return					Absolute angle of the robot
-*
-*/
-uint16_t getAngle(void);
+uint16_t move_get_angle(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* MOVE_H */
+#endif // MOVE_H_
