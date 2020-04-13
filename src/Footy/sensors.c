@@ -21,11 +21,20 @@
 // local defines
 #define IMAGE_BUFFER_SIZE	640		// size of the image acquired, in RGB565 pixel
 #define IMAGE_LINE_HEIGHT	240		// captured line height
-#define BALL_DIAMETER		38		// ball diameter, in mm (official: 38.50 mm)
+
+#define NO_RISE_FALL_FOUND_POS          IMAGE_BUFFER_SIZE + 1
+#define GREEN_PIXEL_RISE_FALL_THRESHOLD (int16_t)(0.25 * 63)
+#define THRESHOLD_BALL_COLOR_IN_GREEN   13
+#define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
+
 
 // semaphores
 static BSEMAPHORE_DECL(sensors_semaphore_image_ready_for_process, TRUE);
 static BSEMAPHORE_DECL(sensors_semaphore_image_completed, TRUE);
+
+// local function prototypes
+float compute_angle_ball(uint16_t ball_middle_pos);
+void detection_in_image(uint8_t * green_pixels);
 
 // threaded functions
 static THD_WORKING_AREA(wa_acquire_image, 256);
@@ -56,7 +65,6 @@ static THD_FUNCTION(acquire_image, arg)
 		// wait until completed
 		wait_image_ready();
 		// signal completeness with the semaphore
-		chBSemSignal(&sensors_semaphore_image_completed);
 		chBSemSignal(&sensors_semaphore_image_ready_for_process);
     }
 }
@@ -69,14 +77,7 @@ static THD_FUNCTION(process_image, arg)
     (void)arg;
 
 	uint8_t * img_raw_RGB565_pixels = NULL;
-	uint8_t   red_pixels[IMAGE_BUFFER_SIZE] = {0};
-
-	int8_t diff_pixels;
-
-	int8_t best_diff_pixels_positiv;
-	int8_t best_diff_pixels_negativ;
-	float best_angle_positiv;
-	float best_angle_negativ;
+	uint8_t   green_pixels[IMAGE_BUFFER_SIZE] = {0};
 
 	//static bool s_send_computer = true;
     while(1)
@@ -88,51 +89,56 @@ static THD_FUNCTION(process_image, arg)
 
 
         for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
-        	red_pixels[i/2] = (img_raw_RGB565_pixels[i] >> 3) & 31; // red pixels
+        	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i] >> 5)) & 63;
 
-        // le problème est que maintenant qu'il y a l'ajout des angles, c'est le foncitonnement de detection qui semble ne plus jouer
-        /*best_diff_pixels_positiv = 0;
-        best_diff_pixels_negativ = 0;
-        for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE - 3 ; ++i)
-        {
-        	diff_pixels = red_pixels[i] - red_pixels[i + 3];
-        	if(abs(diff_pixels) >= 8)
-        	{
-        		chprintf((BaseSequentialStream *)&SD3, "found %d\n", diff_pixels >= 0);
-        		if(diff_pixels > best_diff_pixels_positiv)
-        		{
-        			best_diff_pixels_positiv = diff_pixels;
+        detection_in_image(green_pixels);
 
-					if(i <= 320)
-						best_angle_positiv = -(180 * (atan((1-((float)i/320))*0.414213562)) / M_PI);
-					else
-						best_angle_positiv = (180 * (atan((((float)i/320)-1)*0.414213562)) / M_PI);
-        		}
-        		else if(diff_pixels < best_diff_pixels_negativ)
-        		{
-        			best_diff_pixels_negativ = diff_pixels;
-
-					if(i <= 320)
-						best_angle_negativ = -(180 * (atan((1-((float)i/320))*0.414213562)) / M_PI);
-					else
-						best_angle_negativ = (180 * (atan((((float)i/320)-1)*0.414213562)) / M_PI);
-        		}
-
-        	}
-        }
-
-        if(best_diff_pixels_positiv != 0)
-        {
-        	chprintf((BaseSequentialStream *)&SD3, "found + %f\n", best_angle_positiv);
-        }
-        if(best_diff_pixels_negativ != 0)
-        {
-        	chprintf((BaseSequentialStream *)&SD3, "found - %f\n", best_angle_negativ);
-        }*/
 
 		//debug_send_uint8_array_to_computer(red_pixels, IMAGE_BUFFER_SIZE);
 
-		debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
+		//debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
+
+        chBSemSignal(&sensors_semaphore_image_completed);
+    }
+}
+
+float compute_angle_ball(uint16_t ball_middle_pos)
+{
+    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
+}
+
+void detection_in_image(uint8_t * green_pixels)
+{
+    uint16_t last_fall_pos = NO_RISE_FALL_FOUND_POS;
+    uint16_t sum;
+    int16_t pixel_derivative;
+
+    for(uint16_t i = 2 ; i < IMAGE_BUFFER_SIZE - 2 ; ++i)
+    {
+        pixel_derivative = (int16_t)green_pixels[i + 2] - (int16_t)green_pixels[i - 2];
+        if(last_fall_pos < IMAGE_BUFFER_SIZE)   // if the beginning of a ball has been seen, we can look at the end of a ball
+        {
+            sum += green_pixels[i];
+            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD)
+            {
+                if(sum < THRESHOLD_BALL_COLOR_IN_GREEN * (i - last_fall_pos))
+                {
+                    float ball_angle = compute_angle_ball((last_fall_pos + i) >> 1);
+
+                    chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %d and %d\n", last_fall_pos, i);
+                    chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", ball_angle);
+
+                    central_send_ball_found(ball_angle);
+
+                    last_fall_pos = NO_RISE_FALL_FOUND_POS;
+                }
+            }
+        }
+        if(pixel_derivative <= -GREEN_PIXEL_RISE_FALL_THRESHOLD)
+        {
+            last_fall_pos = i;
+            sum = 0;
+        }
     }
 }
 

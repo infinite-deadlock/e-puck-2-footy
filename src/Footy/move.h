@@ -17,18 +17,17 @@ extern "C" {
 * @return					Time difference between planned and executed [ms]
 *
 */
-uint16_t move_rotate(uint16_t angle, int16_t speed);
+uint16_t move_rotate(float angle, int16_t speed);
 
 /**
 * @brief   Rotate the robot
 *
-* @param dist				Relative distance of the desired translation in cm
 * @param speed				Translation speed of wheels in step/s
 *
 * @return					Absolute distance of the robot
 *
 */
-uint16_t move_translate(uint16_t dist, int16_t speed);
+uint16_t move_until_obstacle(int16_t speed);
 
 uint16_t move_get_angle(void);
 

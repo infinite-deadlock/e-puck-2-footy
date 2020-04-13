@@ -1,6 +1,12 @@
 # e-puck-2-footy
 Semestrial mini-project
 
+# Détection de la balle
++ Corrections générales
++ Détection opérationnelle
++ Le robot s'oriente en direction de la balle
+La balle est correctement détectée et le robot s'oriente correctement avec elle
+
 # Verification de la lecture de pixel
 + Correction de la transmission d'informations
 + Création d'un porgamme indépendant d'analyser

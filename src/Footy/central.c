@@ -7,8 +7,14 @@
 #include "move.h"
 #include "sensors.h"
 
+// local defines
+
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
+
+// global variable to this module
+static float central_ball_angle = 0.f;
+static bool central_ball_found = false;
 
 void central_control_loop(void)
 {
@@ -16,9 +22,11 @@ void central_control_loop(void)
 	// Ce symptôme disparaît quand on essaye de connecter l'e-puck
 	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
-	/*while(1)
+	while(1)
 	{
 		chThdSleepMilliseconds(5000);
+
+		central_ball_found = false;
 		for(uint8_t i = 0 ; i < 15 ; ++i)
 		{
 			// speed 50 in 222 ms
@@ -32,21 +40,28 @@ void central_control_loop(void)
 
 			chBSemSignal(&central_semaphore_image_request);
 			chBSemWait(central_get_semaphore_authorization_move());
-		}
 
-		//debug_am_i_responding();
-	}*/
-	while(1)
+			if(central_ball_found)
+				break;
+		}
+		if(central_ball_found)
+		{
+			move_rotate(central_ball_angle, 50);
+			chThdSleepMilliseconds(2000);
+		}
+	}
+	/*while(1)
 	{
 		chBSemSignal(&central_semaphore_image_request);
 		chBSemWait(central_get_semaphore_authorization_move());
 		chThdSleepMilliseconds(6000);
-	}
+	}*/
 }
 
-void central_report_found_ball_start(float local_angle)
+void central_send_ball_found(float ball_angle)
 {
-
+	central_ball_found = true;
+	central_ball_angle = ball_angle;
 }
 
 void * central_get_semaphore_authorization_acquire(void)

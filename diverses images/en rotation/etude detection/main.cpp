@@ -3,6 +3,10 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <cassert>
+
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 using namespace std;
 
@@ -111,10 +115,71 @@ void export_tab_images_to_csv(vector<vector<uint16_t>> tab_images)
 
 }
 
+/// DEBUT DU CODE A METTRE DANS L'E-PUCK
+
+#define IMAGE_BUFFER_SIZE               640
+#define NO_RISE_FALL_FOUND_POS          IMAGE_BUFFER_SIZE + 1
+#define GREEN_PIXEL_RISE_FALL_THRESHOLD (int16_t)(0.25 * 63)
+#define THRESHOLD_BALL_COLOR_IN_GREEN   13
+#define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
+
+float compute_angle_ball(uint16_t ball_middle_pos)
+{
+    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
+}
+
+void detection_in_image(uint8_t * green_pixels)
+{
+    uint16_t last_fall_pos = NO_RISE_FALL_FOUND_POS;
+    uint16_t sum;
+    int16_t pixel_derivative;
+
+    for(uint16_t i = 2 ; i < IMAGE_BUFFER_SIZE - 2 ; ++i)
+    {
+        pixel_derivative = (int16_t)green_pixels[i + 2] - (int16_t)green_pixels[i - 2];
+        if(last_fall_pos < IMAGE_BUFFER_SIZE)   // if the beginning of a ball has been seen, we can look at the end of a ball
+        {
+            sum += green_pixels[i];
+            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD)
+            {
+                if(sum < THRESHOLD_BALL_COLOR_IN_GREEN * (i - last_fall_pos))
+                {
+                    float ball_angle = compute_angle_ball((last_fall_pos + i) >> 1);
+
+                    cout << "ball is located in between: " << last_fall_pos << " and " << i << endl;
+                    cout << "angle is: " << ball_angle;
+                    last_fall_pos = NO_RISE_FALL_FOUND_POS;
+                }
+            }
+        }
+        if(pixel_derivative <= -GREEN_PIXEL_RISE_FALL_THRESHOLD)
+        {
+            last_fall_pos = i;
+            sum = 0;
+        }
+    }
+}
+
+
+/// FIN DU CODE
+
+void launch_detection_in_image(vector<uint16_t> & image)
+{
+    assert(image.size() == IMAGE_BUFFER_SIZE);
+    uint8_t green_pixels[IMAGE_BUFFER_SIZE] = {0};
+
+    for(size_t i = 0 ; i < image.size() ; ++i)
+        green_pixels[i] = extract_green(image[i]);
+
+    detection_in_image(green_pixels);
+}
+
 int main()
 {
     vector<vector<uint16_t>> tab_images = extract_tab_images("balle_rouge_en_face_fond_blanc.txt");
     export_tab_images_to_csv(tab_images);
+
+    launch_detection_in_image(tab_images[0]);
 
     return 0;
 }

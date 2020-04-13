@@ -17,17 +17,17 @@
 #define MOVE_DURATION_FACTOR	462.512251777f
 
 
-uint16_t move_translate(uint16_t dist, int16_t speed)
+uint16_t move_until_obstacle(int16_t speed)
 {
 	return 0;
 }
 
-uint16_t move_rotate(uint16_t angle, int16_t speed)
+uint16_t move_rotate(float angle, int16_t speed)
 {
 	static uint32_t s_move_duration = 0;
 	static int s_robot_speed = 0;
 
-	static uint16_t s_angle_previous = 0;
+	static float s_angle_previous = 0;
 	static int16_t s_speed_previous = 0;
 
 	// recompute with floats only if required
@@ -39,6 +39,9 @@ uint16_t move_rotate(uint16_t angle, int16_t speed)
 		s_move_duration = abs((angle * MOVE_DURATION_FACTOR) / speed);
 		s_robot_speed = speed * SPEED_FACTOR;
 	}
+
+	if(angle < 0)
+		s_robot_speed *= -1;
 
 	left_motor_set_speed(s_robot_speed);
 	right_motor_set_speed(-s_robot_speed);
