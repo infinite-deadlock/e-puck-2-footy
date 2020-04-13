@@ -12,9 +12,6 @@
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
-// global variable to this module
-static float central_ball_angle = 0.f;
-static bool central_ball_found = false;
 
 void central_control_loop(void)
 {
@@ -22,11 +19,13 @@ void central_control_loop(void)
 	// Ce symptôme disparaît quand on essaye de connecter l'e-puck
 	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
+	float ball_angle = 0.f;
+	bool ball_found = false;
 	while(1)
 	{
 		chThdSleepMilliseconds(5000);
 
-		central_ball_found = false;
+		ball_found = false;
 		for(uint8_t i = 0 ; i < 15 ; ++i)
 		{
 			// speed 50 in 222 ms
@@ -39,15 +38,18 @@ void central_control_loop(void)
 			chThdSleepMilliseconds(1100);
 
 			chBSemSignal(&central_semaphore_image_request);
-			chBSemWait(central_get_semaphore_authorization_move());
+			chBSemWait(sensors_get_semaphore_authorization_move());
 
-			if(central_ball_found)
+			ball_found = sensors_is_ball_found(&ball_angle);
+			if(ball_found)
 				break;
 		}
-		if(central_ball_found)
+		if(ball_found)
 		{
-			move_rotate(central_ball_angle, 50);
-			chThdSleepMilliseconds(2000);
+			move_rotate(ball_angle, 50);
+			chThdSleepMilliseconds(1000);
+
+			move_until_obstacle(500);
 		}
 	}
 	/*while(1)
@@ -56,12 +58,6 @@ void central_control_loop(void)
 		chBSemWait(central_get_semaphore_authorization_move());
 		chThdSleepMilliseconds(6000);
 	}*/
-}
-
-void central_send_ball_found(float ball_angle)
-{
-	central_ball_found = true;
-	central_ball_angle = ball_angle;
 }
 
 void * central_get_semaphore_authorization_acquire(void)

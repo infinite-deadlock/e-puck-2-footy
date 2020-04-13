@@ -1,6 +1,10 @@
 # e-puck-2-footy
 Semestrial mini-project
 
+# Recherche et déplacement avec détection de collision
++ Déplacement avec possiblité d'arrêt si un obstacle se met devant
+Le robot peut désormais s'arrêter si on met un obstacle devant pendant qu'il fonce vers la balle
+
 # Détection de la balle
 + Corrections générales
 + Détection opérationnelle

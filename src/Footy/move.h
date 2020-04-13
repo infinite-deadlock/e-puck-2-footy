@@ -24,10 +24,8 @@ uint16_t move_rotate(float angle, int16_t speed);
 *
 * @param speed				Translation speed of wheels in step/s
 *
-* @return					Absolute distance of the robot
-*
 */
-uint16_t move_until_obstacle(int16_t speed);
+void move_until_obstacle(int16_t speed);
 
 uint16_t move_get_angle(void);
 

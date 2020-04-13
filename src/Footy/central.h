@@ -7,7 +7,6 @@ extern "C" {
 
 void central_control_loop(void);
 void * central_get_semaphore_authorization_acquire(void);
-void central_send_ball_found(float ball_angle);
 
 #ifdef __cplusplus
 }

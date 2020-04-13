@@ -8,6 +8,7 @@
 
 // this project files
 #include "debug.h"
+#include "sensors.h"
 #include "constantes.h"
 
 
@@ -16,10 +17,34 @@
 #define SPEED_FACTOR 			7.76365566253662109375f		// exact rounded value in float
 #define MOVE_DURATION_FACTOR	462.512251777f
 
+#define OBSTACLE_DETECT_DELAY	150	// in ms
 
-uint16_t move_until_obstacle(int16_t speed)
+
+void move_until_obstacle(int16_t speed)
 {
-	return 0;
+	bool is_moving = false;
+	while(1)
+	{
+		if(sensors_can_move())
+		{
+			if(!is_moving)
+			{
+				left_motor_set_speed(speed);
+				right_motor_set_speed(speed);
+				is_moving = true;
+			}
+		}
+		else
+		{
+			if(is_moving)
+			{
+				left_motor_set_speed(0);
+				right_motor_set_speed(0);
+				is_moving = false;
+			}
+		}
+		chThdSleepMilliseconds(OBSTACLE_DETECT_DELAY);
+	}
 }
 
 uint16_t move_rotate(float angle, int16_t speed)

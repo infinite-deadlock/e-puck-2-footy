@@ -5,21 +5,23 @@
 #include <math.h>
 
 // ChibiOS & others
-#include "ch.h"						// main include files
-#include "hal.h"					// Hardware Abstraction Layer subsystem header
-#include "memory_protection.h"		// Memory access permissions
-#include <usbcfg.h>					// USB services
-#include <chprintf.h>				// mini printf-like functionality
+#include "ch.h"							// main include files
+#include "hal.h"						// Hardware Abstraction Layer subsystem header
+#include "memory_protection.h"			// Memory access permissions
+#include <usbcfg.h>						// USB services
+#include <chprintf.h>					// mini printf-like functionality
 
 // EPFL-MICRO 315 library
-#include <motors.h>					// e-puck-2 motors control
-#include <camera/dcmi_camera.h>		// e-puck-2 Digital CaMera Interface
-#include <camera/po8030.h>			// e-puck-2 main frontal camera
+#include <motors.h>						// e-puck-2 motors control
+#include <camera/dcmi_camera.h>			// e-puck-2 Digital CaMera Interface
+#include <camera/po8030.h>				// e-puck-2 main frontal camera
+#include <sensors/VL53L0X/VL53L0X.h>	// e-puck-2 Time Of Flight sensor
 
 // this project files
 #include "debug.h"
 #include "sensors.h"
 #include "move.h"
+#include "central.h"
 
 
 static void serial_start(void)
