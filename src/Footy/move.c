@@ -75,8 +75,8 @@ uint16_t move_rotate(float angle, int16_t speed)
 			s_robot_speed *= -1;
 	}
 
-	left_motor_set_speed(s_robot_speed);
-	right_motor_set_speed(-s_robot_speed);
+	right_motor_set_speed(s_robot_speed);
+	left_motor_set_speed(-s_robot_speed);
 
 	s_robot_angle += s_robot_speed > 0 ? angle : -angle;
 	systime_t time_start = chVTGetSystemTime();

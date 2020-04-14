@@ -116,7 +116,7 @@ static THD_FUNCTION(process_image, arg)
 
 float compute_angle_ball(uint16_t ball_middle_pos)
 {
-    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
+    return atan((1.f-((float)ball_middle_pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
 }
 
 void detection_in_image(uint8_t * green_pixels)
