@@ -20,7 +20,7 @@ void sensors_start(void);
 void * sensors_get_semaphore_authorization_move(void);
 void sensors_set_ball_to_be_search(void);
 bool sensors_can_move(void);
-bool sensors_is_ball_found(float * ball_angle, float * ball_seen_angle);
+bool sensors_is_ball_found(float * ball_angle, float * ball_seen_angle, bool clockwise, bool * invert_rotation);
 
 #ifdef __cplusplus
 }

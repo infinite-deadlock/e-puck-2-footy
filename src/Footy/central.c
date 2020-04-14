@@ -1,5 +1,7 @@
 #include "central.h"
 
+#include <stdbool.h>
+
 // ChibiOS & others
 #include "ch.h"					// main include files
 #include <chprintf.h>					// mini printf-like functionality
@@ -11,7 +13,6 @@
 
 // local defines
 #define NSTEPS 15
-#define DEFAULT_SPEED_MMPS 50
 
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
@@ -30,6 +31,8 @@ void central_control_loop(void)
 	float ball_angle = 0.f;
 	float ball_seen_angle = 0.f;
 	bool ball_found = false;
+	bool invert_rotation = false;
+	int16_t rotation_speed = MOTOR_SPEED_LIMIT/2;
 	while(1)
 	{
 		chThdSleepSeconds(5);
@@ -40,12 +43,14 @@ void central_control_loop(void)
 			chBSemSignal(&central_semaphore_image_request);
 			chBSemWait(sensors_get_semaphore_authorization_move());
 
-			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_angle);
-			if(!ball_found)///@Pierre : ça m'a l'air plus propre que le break, de plus on a pas forcément besoin de tourner donc autant commencer par l'analyse
+			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_angle, rotation_speed>=0, &invert_rotation);
+			if(!ball_found)
 			{
+				if(invert_rotation)
+					rotation_speed*=-1;
 				// speed 50 in 222 ms
 				// speed 40 in 277 ms
-				move_rotate(360/NSTEPS, DEFAULT_SPEED_MMPS);
+				move_rotate(360/NSTEPS, rotation_speed);
 
 				// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 				// meanwhile, image process can occur
@@ -55,14 +60,14 @@ void central_control_loop(void)
 		}
 		if(ball_found)
 		{
-			move_rotate(ball_angle-getAngle(), DEFAULT_SPEED_MMPS);
+			move_rotate(ball_angle-getAngle(), MOTOR_SPEED_LIMIT/2);
 			chThdSleepMilliseconds(1000);
 
 			///@Pierre juste pour tester si la distance calculée avec l'angle vue de la balle peut être exploitable
 		    chprintf((BaseSequentialStream *)&SD3, "ball is located at %fmm from the robot\n", compute_distance(ball_seen_angle));
 
 
-			move_until_obstacle(MAX_SPEED_MMPS);///@Pierre 500 c'était trop pour les moteurs, la valeur max vaut environ 141mm/s
+			move_until_obstacle(MOTOR_SPEED_LIMIT/2);
 		}
 	}
 	/*while(1)

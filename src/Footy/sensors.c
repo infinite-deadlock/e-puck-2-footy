@@ -116,7 +116,7 @@ static THD_FUNCTION(process_image, arg)
 
 float compute_angle_ball(uint16_t ball_middle_pos)
 {
-    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;///@Pierre: c'est bien pour quand on programme mais ultimement on fera mieux de précalculer ces valeurs
+    return atan((((float)ball_middle_pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
 }
 
 void detection_in_image(uint8_t * green_pixels)
@@ -130,7 +130,7 @@ void detection_in_image(uint8_t * green_pixels)
         if(last_fall_pos != NO_RISE_FALL_FOUND_POS)   // if the beginning of a ball has been seen, we can look at the end of a ball
         {
             sum += green_pixels[i];
-            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD || i==IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA)//detect rise or cut ball
+            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD || i==IMAGE_BUFFER_SIZE-DERIVATION_PERIOD_DELTA-1)//detect rise or cut ball
             {
                 if(sum < THRESHOLD_BALL_COLOR_IN_GREEN * (i - last_fall_pos))
                 {
@@ -139,7 +139,7 @@ void detection_in_image(uint8_t * green_pixels)
                     	s_sensors_ball_left_found = true;
         				s_sensors_ball_left_angle = getAngle()+compute_angle_ball(last_fall_pos);//ball is not cut -> left edge found
                     }
-                    if(i !=IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA)
+                    if(i !=IMAGE_BUFFER_SIZE-DERIVATION_PERIOD_DELTA-1)
                     {
                     	s_sensors_ball_right_found = true;
         				s_sensors_ball_right_angle = getAngle()+compute_angle_ball(i);//ball is not cut -> right edge found
@@ -165,7 +165,7 @@ void detection_in_image(uint8_t * green_pixels)
             last_fall_pos = i;
             sum = 0;
         }
-        pixel_derivative = (int16_t)green_pixels[DERIVATION_PERIOD_DELTA + 2] - (int16_t)green_pixels[i - DERIVATION_PERIOD_DELTA];
+        pixel_derivative = (int16_t)green_pixels[i + DERIVATION_PERIOD_DELTA] - (int16_t)green_pixels[i - DERIVATION_PERIOD_DELTA];
     }
 }
 
@@ -181,14 +181,25 @@ void sensors_start(void)
 void sensors_set_ball_to_be_search(void)
 {
 	s_sensors_ball_found = false;
+	s_sensors_ball_left_found = false;
+	s_sensors_ball_right_found = false;
 }
 
-bool sensors_is_ball_found(float * ball_angle, float * ball_seen_angle)
+bool sensors_is_ball_found(float * ball_angle, float * ball_seen_angle, bool clockwise, bool * invert_rotation)
 {
 	if(s_sensors_ball_found)
 	{
 		*ball_angle = s_sensors_ball_angle;
 		*ball_seen_angle = s_sensors_ball_left_angle - s_sensors_ball_right_angle;
+	}
+	else
+	{
+		if(clockwise && s_sensors_ball_left_found)
+			*invert_rotation = true;
+		else if(!clockwise && s_sensors_ball_right_found)
+			*invert_rotation = true;
+		else
+			*invert_rotation = false;
 	}
 	return s_sensors_ball_found;
 }
