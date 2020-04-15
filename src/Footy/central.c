@@ -6,6 +6,7 @@
 // this project files
 #include "move.h"
 #include "sensors.h"
+#include "constantes.h"
 
 // local defines
 
@@ -26,11 +27,12 @@ void central_control_loop(void)
 		chThdSleepMilliseconds(5000);
 
 		ball_found = false;
-		for(uint8_t i = 0 ; i < 15 ; ++i)
+		sensors_set_ball_to_be_search();
+		for(uint8_t i = 0 ; i < EPUCK_SEARCH_NB_ROTATION ; ++i)
 		{
 			// speed 50 in 222 ms
 			// speed 40 in 277 ms
-			move_rotate(24, 50);
+			move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, 50);
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
@@ -46,6 +48,8 @@ void central_control_loop(void)
 		}
 		if(ball_found)
 		{
+			sensors_set_ball_to_be_search();
+
 			move_rotate(ball_angle, 50);
 			chThdSleepMilliseconds(1000);
 

@@ -49,7 +49,7 @@ int main(void)
 	motors_init();		// motors starting
 
 	sensors_start();	// start all sensors for this project
-	move_init();		// handle movements
+	//move_init();		// handle movements
 
 	central_control_loop();
 }
