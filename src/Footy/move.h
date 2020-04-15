@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+// EPFL-MICRO 315 library
+#include <motors.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,7 +30,13 @@ uint16_t move_rotate(float angle, int16_t speed);
 */
 void move_until_obstacle(int16_t speed);
 
-uint16_t move_get_angle(void);
+/**
+* @brief   Get the absolute angle of the robot
+*
+* @return					Absolute angle of the robot
+*
+*/
+float move_get_angle(void);
 
 #ifdef __cplusplus
 }

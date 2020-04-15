@@ -13,15 +13,20 @@
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
+static float compute_distance(float ball_seen_angle)
+{
+	return	BALL_DIAMETER/2/sin(ball_seen_angle/2);//x=R/sin(alpha/2)
+}
 
 void central_control_loop(void)
 {
-	//PI: pour une raison peu connue, le robot ne fera pas assez d'étapes au premier tour
 	// Ce symptôme disparaît quand on essaye de connecter l'e-puck
 	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
 	float ball_angle = 0.f;
 	bool ball_found = false;
+
+	int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
 	while(1)
 	{
 		chThdSleepMilliseconds(5000);
@@ -32,7 +37,7 @@ void central_control_loop(void)
 		{
 			// speed 50 in 222 ms
 			// speed 40 in 277 ms
-			move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, 50);
+			move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, rotation_speed);
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
@@ -50,10 +55,10 @@ void central_control_loop(void)
 		{
 			sensors_set_ball_to_be_search();
 
-			move_rotate(ball_angle, 50);
+			move_rotate(ball_angle, rotation_speed);
 			chThdSleepMilliseconds(1000);
 
-			move_until_obstacle(500);
+			move_until_obstacle(rotation_speed);
 		}
 	}
 	/*while(1)
