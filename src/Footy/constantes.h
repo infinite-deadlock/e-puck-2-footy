@@ -11,6 +11,6 @@
 #define LINEAR_RES					129			// um, for unit conversion
 #define FIELD_RADIUS				4000		// approximately 1m diameter
 
-#define BALL_DIAMETER				38			// ball diameter, in mm (official: 38.50 mm)
+#define BALL_DIAMETER				37			// ball diameter, in mm (official: 38.50 mm)
 
 #endif // CONSTANTES_H_

@@ -26,6 +26,7 @@
 #define NO_RISE_FALL_FOUND_POS          IMAGE_BUFFER_SIZE + 1
 #define GREEN_PIXEL_RISE_FALL_THRESHOLD (int16_t)(0.25 * 63)
 #define THRESHOLD_BALL_COLOR_IN_GREEN   13
+#define THRESHOLD_BALL_COLOR_IN_RED		13
 #define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
 #define DERIVATION_PERIOD_DELTA			2
 
@@ -46,7 +47,7 @@ static float s_sensors_ball_right_angle;
 
 // local function prototypes
 float compute_angle_ball(uint16_t ball_middle_pos);
-void detection_in_image(uint8_t * green_pixels);
+void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels);
 
 // threaded functions
 static THD_WORKING_AREA(wa_acquire_image, 256);
@@ -90,6 +91,7 @@ static THD_FUNCTION(process_image, arg)
 
 	uint8_t * img_raw_RGB565_pixels = NULL;
 	uint8_t   green_pixels[IMAGE_BUFFER_SIZE] = {0};
+	uint8_t   red_pixels[IMAGE_BUFFER_SIZE] = {0};
 
 	//static bool s_send_computer = true;
     while(1)
@@ -101,9 +103,12 @@ static THD_FUNCTION(process_image, arg)
         img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
         for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
-        	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i] >> 5)) & 63;
+        {
+        	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i] >> 5)) & 63;//2 bytes, MSB RRRRRGGG GGGBBBBB LSB
+        	red_pixels[i/2] = img_raw_RGB565_pixels[i] >> 3;
+        }
 
-        detection_in_image(green_pixels);
+        detection_in_image(green_pixels, red_pixels);
 
 
 		//debug_send_uint8_array_to_computer(red_pixels, IMAGE_BUFFER_SIZE);
@@ -119,20 +124,21 @@ float compute_angle_ball(uint16_t ball_middle_pos)
     return atan((1.f-((float)ball_middle_pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
 }
 
-void detection_in_image(uint8_t * green_pixels)
+void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
 {
     uint16_t last_fall_pos = NO_RISE_FALL_FOUND_POS;
-    uint16_t sum;
+    uint16_t sum_green, sum_red;
     int16_t pixel_derivative = (int16_t)green_pixels[DERIVATION_PERIOD_DELTA*2];//compute initial slope with white wall hypothesis -> detect fall if ball cut
 
     for(uint16_t i = DERIVATION_PERIOD_DELTA ; i < IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA ; ++i)
     {
         if(last_fall_pos != NO_RISE_FALL_FOUND_POS)   // if the beginning of a ball has been seen, we can look at the end of a ball
         {
-            sum += green_pixels[i];
+        	sum_green += green_pixels[i];
+        	sum_red += red_pixels[i];
             if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD || i==IMAGE_BUFFER_SIZE-DERIVATION_PERIOD_DELTA-1)//detect rise or cut ball
             {
-                if(sum < THRESHOLD_BALL_COLOR_IN_GREEN * (i - last_fall_pos))
+                if(sum_green < THRESHOLD_BALL_COLOR_IN_GREEN * (i - last_fall_pos) && sum_red > THRESHOLD_BALL_COLOR_IN_RED * (i - last_fall_pos))
                 {
                     if(last_fall_pos != DERIVATION_PERIOD_DELTA)
                     {
@@ -163,7 +169,8 @@ void detection_in_image(uint8_t * green_pixels)
         if(pixel_derivative <= -GREEN_PIXEL_RISE_FALL_THRESHOLD)
         {
             last_fall_pos = i;
-            sum = 0;
+            sum_green = 0;
+            sum_red = 0;
         }
         pixel_derivative = (int16_t)green_pixels[i + DERIVATION_PERIOD_DELTA] - (int16_t)green_pixels[i - DERIVATION_PERIOD_DELTA];
     }
