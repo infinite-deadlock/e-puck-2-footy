@@ -130,7 +130,7 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
     uint16_t sum_green, sum_red;
     int16_t pixel_derivative = (int16_t)green_pixels[DERIVATION_PERIOD_DELTA*2];//compute initial slope with white wall hypothesis -> detect fall if ball cut
 
-    for(uint16_t i = DERIVATION_PERIOD_DELTA ; i < IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA ; ++i)
+    for(uint16_t i = DERIVATION_PERIOD_DELTA - 1 ; i < IMAGE_BUFFER_SIZE - DERIVATION_PERIOD_DELTA ; ++i)
     {
         if(last_fall_pos != NO_RISE_FALL_FOUND_POS)   // if the beginning of a ball has been seen, we can look at the end of a ball
         {
@@ -164,6 +164,10 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
 
                     last_fall_pos = NO_RISE_FALL_FOUND_POS;
                 }
+                else
+                {
+                	last_fall_pos = NO_RISE_FALL_FOUND_POS;//Fall rise was not the ball
+                }
             }
         }
         if(pixel_derivative <= -GREEN_PIXEL_RISE_FALL_THRESHOLD)
@@ -172,7 +176,9 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
             sum_green = 0;
             sum_red = 0;
         }
-        pixel_derivative = (int16_t)green_pixels[i + DERIVATION_PERIOD_DELTA] - (int16_t)green_pixels[i - DERIVATION_PERIOD_DELTA];
+
+        if(i < IMAGE_BUFFER_SIZE-DERIVATION_PERIOD_DELTA-1)
+        	pixel_derivative = (int16_t)green_pixels[i + 1 + DERIVATION_PERIOD_DELTA] - (int16_t)green_pixels[i + 1 - DERIVATION_PERIOD_DELTA];
     }
 }
 

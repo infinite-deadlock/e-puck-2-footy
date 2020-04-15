@@ -38,6 +38,7 @@ void central_control_loop(void)
 		chThdSleepSeconds(5);
 
 		ball_found = false;
+		sensors_set_ball_to_be_search();
 		for(uint8_t i = 0 ; i < NSTEPS ; ++i)
 		{
 			chBSemSignal(&central_semaphore_image_request);
