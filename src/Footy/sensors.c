@@ -26,7 +26,7 @@
 #define NO_RISE_FALL_FOUND_POS          IMAGE_BUFFER_SIZE + 1
 #define GREEN_PIXEL_RISE_FALL_THRESHOLD (int16_t)(0.25 * 63)
 #define THRESHOLD_BALL_COLOR_IN_GREEN   13
-#define THRESHOLD_BALL_COLOR_IN_RED		13
+#define THRESHOLD_BALL_COLOR_IN_RED		0
 #define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
 #define DERIVATION_PERIOD_DELTA			2
 
@@ -82,7 +82,7 @@ static THD_FUNCTION(acquire_image, arg)
     }
 }
 
-static THD_WORKING_AREA(wa_process_image, 1024);
+static THD_WORKING_AREA(wa_process_image, 2048);
 static THD_FUNCTION(process_image, arg)
 {
 	// this function is used in a thread
@@ -104,7 +104,7 @@ static THD_FUNCTION(process_image, arg)
 
         for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
         {
-        	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i] >> 5)) & 63;//2 bytes, MSB RRRRRGGG GGGBBBBB LSB
+        	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i + 1] >> 5)) & 63;//2 bytes, MSB RRRRRGGG GGGBBBBB LSB
         	red_pixels[i/2] = img_raw_RGB565_pixels[i] >> 3;
         }
 
