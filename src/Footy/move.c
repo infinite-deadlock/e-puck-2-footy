@@ -15,7 +15,8 @@
 //#define MOVE_DURATION_FACTOR	1000 * ((2*M_PI / 360.) * (WHEEL_DISTANCE / 2))*(MOTOR_STEPS_PER_TURN / (M_PI * WHEEL_DIAMETER)) //=1000* (WHEEL_DISTANCE/WHEEL_DIAMETER) * (MOTOR_STEPS_PER_TURN/360)
 #define MOVE_DURATION_FACTOR	3590.78590786f //milli_step/deg -> must be multiplied by angle and divided by speed in step/s
 
-#define OBSTACLE_DETECT_DELAY	150	// in ms
+//#define OBSTACLE_DETECT_DELAY	150	// in ms
+#define SPEED_UPDATE_DELAY	50 // in ms
 
 
 void move_until_obstacle(int16_t default_speed)
@@ -50,7 +51,7 @@ void move_until_obstacle(int16_t default_speed)
 				is_moving = false;
 			}
 		}
-		chThdSleepMilliseconds(OBSTACLE_DETECT_DELAY);
+		chThdSleepMilliseconds(SPEED_UPDATE_DELAY);
 	}
 }
 
