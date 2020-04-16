@@ -12,6 +12,12 @@ extern "C" {
 #endif
 
 /**
+* @brief   Init module threads
+*
+*/
+void move_init_threads(void);
+
+/**
 * @brief   Rotate the robot
 *
 * @param angle				Relative angle of the desired rotation in deg
