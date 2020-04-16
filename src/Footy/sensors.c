@@ -167,16 +167,6 @@ static THD_FUNCTION(watch_IR, arg)
 
     while(1)
     {
-    	///@Pierre juste pour voir les valeurs retournées par les capteurs, si tu arrive à mettre la bonne condition dans IR_TRIGGER_VALUE
-    	///Pour l'instant j'ai aussi fait un abs() de la valeur retournée, juste un peu plus bas, parce qu'il me semble qu'elles sont de plus en plus négatives. Mais je ne suis pas sûr, tu pourras peut-être l'enlever.
-    	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        chprintf((BaseSequentialStream *)&SD3, "left IR value is %d\n", get_calibrated_prox(PROX_LEFT));
-        chprintf((BaseSequentialStream *)&SD3, "left front IR value is %d\n", get_calibrated_prox(PROX_LEFT_FRONT));
-        chprintf((BaseSequentialStream *)&SD3, "left back IR value is %d\n", get_calibrated_prox(PROX_LEFT_BACK));
-        chprintf((BaseSequentialStream *)&SD3, "right IR value is %d\n", get_calibrated_prox(PROX_RIGHT));
-        chprintf((BaseSequentialStream *)&SD3, "right front IR value is %d\n", get_calibrated_prox(PROX_RIGHT_FRONT));
-        chprintf((BaseSequentialStream *)&SD3, "right back IR value is %d\n", get_calibrated_prox(PROX_RIGHT_BACK));
-        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     	//read values IR sensors, moving sum
     	add_value_sum_buffer(&sum[SENSOR_LEFT], samples[SENSOR_LEFT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT)));
     	add_value_sum_buffer(&sum[SENSOR_LEFT_FRONT], samples[SENSOR_LEFT_FRONT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_FRONT)));
@@ -195,6 +185,14 @@ static THD_FUNCTION(watch_IR, arg)
     	sensors_IR_triggered[SENSOR_RIGHT_FRONT] = sum[SENSOR_RIGHT_FRONT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
     	sensors_IR_triggered[SENSOR_RIGHT_BACK] = sum[SENSOR_RIGHT_BACK] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
 
+    	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        chprintf((BaseSequentialStream *)&SD3, "left triggered %d\n", sensors_IR_triggered[SENSOR_LEFT]);
+        chprintf((BaseSequentialStream *)&SD3, "left triggered %d\n", sensors_IR_triggered[SENSOR_LEFT_FRONT]);
+        chprintf((BaseSequentialStream *)&SD3, "left triggered %d\n", sensors_IR_triggered[SENSOR_LEFT_BACK]);
+        chprintf((BaseSequentialStream *)&SD3, "right triggered %d\n", sensors_IR_triggered[SENSOR_RIGHT]);
+        chprintf((BaseSequentialStream *)&SD3, "right triggered %d\n", sensors_IR_triggered[SENSOR_RIGHT_FRONT]);
+        chprintf((BaseSequentialStream *)&SD3, "right triggered %d\n", sensors_IR_triggered[SENSOR_RIGHT_BACK]);
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     	chThdSleepMilliseconds(IR_SAMPLE_PERIOD);
     }
 }
