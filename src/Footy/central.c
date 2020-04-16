@@ -26,6 +26,7 @@ void central_control_loop(void)
 
 	float ball_angle = 0.f;
 	float ball_seen_half_angle = 0.f;
+	float ball_distance = 0.f;
 	bool ball_found = false;
 
 	int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
@@ -58,6 +59,10 @@ void central_control_loop(void)
 		chThdSleepMilliseconds(1000);
 
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
+		ball_distance = compute_distance(ball_seen_half_angle);
+		move_straight(ball_distance-BALL_DIAMETER, rotation_speed);
+		move_round_about(BALL_DIAMETER, rotation_speed);
+
 
 		move_until_obstacle(rotation_speed);
 	}

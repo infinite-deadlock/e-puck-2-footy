@@ -30,6 +30,23 @@ uint16_t move_rotate(float angle, int16_t speed);
 */
 void move_until_obstacle(int16_t speed);
 
+/**
+* @brief   Move the robot straight for a given distance
+*
+* @param distance			Distance in mm
+* @param speed				Translation speed of wheels in step/s
+*
+*/
+void move_straight(float distance, int16_t speed);
+/**
+* @brief   Move the robot in half circle around a point at radius in front of him, then face center
+*
+* @param radius				Circle radius in mm
+* @param speed				Translation speed of wheels in step/s
+*
+*/
+void move_round_about(float radius, int16_t speed);
+
 #ifdef __cplusplus
 }
 #endif
