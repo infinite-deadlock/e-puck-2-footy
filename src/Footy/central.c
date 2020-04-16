@@ -16,7 +16,7 @@ static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
 static float compute_distance(float ball_seen_half_angle)
 {
-	return	BALL_DIAMETER/2/sin(ball_seen_half_angle);//x=R/sin(alpha/2)
+	return	BALL_DIAMETER/2/sin(ball_seen_half_angle/180*M_PI);//x=R/sin(alpha/2)
 }
 
 void central_control_loop(void)
