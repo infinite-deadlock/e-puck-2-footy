@@ -16,7 +16,7 @@ static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
 static float compute_distance(float ball_seen_half_angle)
 {
-	return	BALL_DIAMETER/2/sin(ball_seen_half_angle/180*M_PI);//x=R/sin(alpha/2)
+	return	fabs(BALL_DIAMETER/2/sin(ball_seen_half_angle/180*M_PI));//x=R/sin(alpha/2)
 }
 
 void central_control_loop(void)
@@ -60,7 +60,7 @@ void central_control_loop(void)
 
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
 		ball_distance = compute_distance(ball_seen_half_angle);
-		move_straight(ball_distance-BALL_DIAMETER, rotation_speed);
+		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, rotation_speed);
 		move_round_about(BALL_DIAMETER, rotation_speed);
 
 

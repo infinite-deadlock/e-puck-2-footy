@@ -111,35 +111,35 @@ void move_straight(float distance, int16_t speed)
 	right_motor_set_speed(0);
 
 }
-void move_round_about(float radius, int16_t speed)
+void move_round_about(float radius, int16_t speed_fast_wheel)
 {
 	static float s_radius_previous = 0;
-	static int16_t s_speed_previous = 0;
-	static int16_t s_speed_fast_wheel = 0;
+	static int16_t s_speed_fast_wheel_previous = 0;
+	static int16_t s_speed_slow_wheel = 0;
 	static uint32_t s_move_duration = 0;
 
-	speed = speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed;
-	speed = speed < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed;
+	speed_fast_wheel = speed_fast_wheel > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed_fast_wheel;
+	speed_fast_wheel = speed_fast_wheel < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed_fast_wheel;
 
-	if(radius != s_radius_previous || speed != s_speed_previous)
+	if(radius != s_radius_previous || speed_fast_wheel != s_speed_fast_wheel_previous)
 	{
 		s_radius_previous = radius;
-		s_speed_previous = speed;
+		s_speed_fast_wheel_previous = speed_fast_wheel;
 
-		s_speed_fast_wheel = speed*(1+WHEEL_DISTANCE/radius);
+		s_speed_slow_wheel = speed_fast_wheel/(1+WHEEL_DISTANCE/radius);
 
-		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(s_speed_fast_wheel - speed);//Half circle -> robot must rotate of 180° around his center
+		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180° around his center
 	}
 
-	move_rotate(90.f, speed);//rotate to be tangeant
+	move_rotate(90.f, speed_fast_wheel);//rotate to be tangeant
 
 	//half circle
-	left_motor_set_speed(s_speed_fast_wheel);
-	right_motor_set_speed(s_speed_previous);
+	left_motor_set_speed(speed_fast_wheel);
+	right_motor_set_speed(s_speed_slow_wheel);
 
 	chThdSleepMilliseconds(s_move_duration);
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
 
-	move_rotate(-90.f, speed);//face center
+	move_rotate(-90.f, speed_fast_wheel);//face center
 }
