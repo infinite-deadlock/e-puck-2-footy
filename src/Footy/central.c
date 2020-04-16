@@ -2,6 +2,7 @@
 
 // ChibiOS & others
 #include "ch.h"					// main include files
+#include <chprintf.h>					// mini printf-like functionality
 
 // this project files
 #include "move.h"
@@ -13,9 +14,9 @@
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
-static float compute_distance(float ball_seen_angle)
+static float compute_distance(float ball_seen_half_angle)
 {
-	return	BALL_DIAMETER/2/sin(ball_seen_angle/2);//x=R/sin(alpha/2)
+	return	BALL_DIAMETER/2/sin(ball_seen_half_angle);//x=R/sin(alpha/2)
 }
 
 void central_control_loop(void)
@@ -24,6 +25,7 @@ void central_control_loop(void)
 	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
 	float ball_angle = 0.f;
+	float ball_seen_half_angle = 0.f;
 	bool ball_found = false;
 
 	int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
@@ -33,11 +35,11 @@ void central_control_loop(void)
 
 		ball_found = false;
 		sensors_set_ball_to_be_search();
-		for(uint8_t i = 0 ; i < EPUCK_SEARCH_NB_ROTATION ; ++i)
+		while(!ball_found)
 		{
 			// speed 50 in 222 ms
 			// speed 40 in 277 ms
-			move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, rotation_speed);
+			move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, rotation_speed);
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
@@ -47,19 +49,17 @@ void central_control_loop(void)
 			chBSemSignal(&central_semaphore_image_request);
 			chBSemWait(sensors_get_semaphore_authorization_move());
 
-			ball_found = sensors_is_ball_found(&ball_angle);
+			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
 			if(ball_found)
 				break;
 		}
-		if(ball_found)
-		{
-			sensors_set_ball_to_be_search();
 
-			move_rotate(ball_angle, rotation_speed);
-			chThdSleepMilliseconds(1000);
+		move_rotate(ball_angle, rotation_speed);
+		chThdSleepMilliseconds(1000);
 
-			move_until_obstacle(rotation_speed);
-		}
+        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
+
+		move_until_obstacle(rotation_speed);
 	}
 	/*while(1)
 	{

@@ -23,20 +23,12 @@ extern "C" {
 uint16_t move_rotate(float angle, int16_t speed);
 
 /**
-* @brief   Rotate the robot
+* @brief   Move the robot straight until obstacle
 *
 * @param speed				Translation speed of wheels in step/s
 *
 */
 void move_until_obstacle(int16_t speed);
-
-/**
-* @brief   Get the absolute angle of the robot
-*
-* @return					Absolute angle of the robot
-*
-*/
-float move_get_angle(void);
 
 #ifdef __cplusplus
 }

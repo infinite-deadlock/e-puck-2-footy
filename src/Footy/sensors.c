@@ -21,13 +21,15 @@
 #include "constantes.h"
 
 // local defines
-#define IMAGE_BUFFER_SIZE	640			// size of the image acquired, in RGB565 pixel
-#define IMAGE_LINE_HEIGHT	240			// captured line height
+#define IMAGE_BUFFER_SIZE	PO8030_MAX_WIDTH			// size of the image acquired, in RGB565 pixel
+#define IMAGE_LINE_HEIGHT	PO8030_MAX_HEIGHT/2			// captured line height
 
 #define NO_RISE_FALL_FOUND_POS          IMAGE_BUFFER_SIZE + 1
 #define GREEN_PIXEL_RISE_FALL_THRESHOLD (int16_t)(0.15 * 63)
 #define THRESHOLD_BALL_COLOR_IN_GREEN   13
+#define THRESHOLD_BALL_COLOR_IN_RED		0
 #define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
+#define DERIV_DELTA						2
 
 #define	MOVE_SECURITY_SPACE				50
 
@@ -39,14 +41,16 @@ static BSEMAPHORE_DECL(sensors_semaphore_image_completed, TRUE);
 // global variables to this module
 static bool sensors_ball_found = false;
 static float sensors_ball_angle;
+static float sensors_ball_seen_half_angle;
 static bool sensors_last_fall_found = false;
 static float sensors_last_fall_angle;
-static uint32_t sensors_sum = 0;
+static uint32_t sensors_sum_green = 0;
+static uint32_t sensors_sum_red = 0;
 static uint16_t sensors_sum_inc = 0;
 
 // local function prototypes
 float compute_angle_from_image(uint16_t ball_middle_pos);
-void detection_in_image(uint8_t * green_pixels);
+void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels);
 
 // threaded functions
 static THD_WORKING_AREA(wa_acquire_image, 256);
@@ -81,7 +85,7 @@ static THD_FUNCTION(acquire_image, arg)
     }
 }
 
-static THD_WORKING_AREA(wa_process_image, 1024);
+static THD_WORKING_AREA(wa_process_image, 2048);
 static THD_FUNCTION(process_image, arg)
 {
 	// this function is used in a thread
@@ -90,6 +94,7 @@ static THD_FUNCTION(process_image, arg)
 
 	uint8_t * img_raw_RGB565_pixels = NULL;
 	uint8_t   green_pixels[IMAGE_BUFFER_SIZE] = {0};
+	uint8_t   red_pixels[IMAGE_BUFFER_SIZE] = {0};
 
 	//static bool s_send_computer = true;
     while(1)
@@ -101,9 +106,12 @@ static THD_FUNCTION(process_image, arg)
         img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
         for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
+        {
         	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i + 1] >> 5)) & 63;
+        	red_pixels[i/2] = (img_raw_RGB565_pixels[i] >> 3);
+        }
 
-        detection_in_image(green_pixels);
+        detection_in_image(green_pixels, red_pixels);
 
 
 		//debug_send_uint8_array_to_computer(green_pixels, IMAGE_BUFFER_SIZE);
@@ -116,27 +124,29 @@ static THD_FUNCTION(process_image, arg)
 
 float compute_angle_from_image(uint16_t pos)
 {
-    return atan((((float)pos / 320) - 1) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
+    return atan((1-((float)pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
 }
 
-void detection_in_image(uint8_t * green_pixels)
+void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
 {
-    int16_t pixel_derivative;
+    int8_t pixel_derivative;
 
-    for(uint16_t i = 2 ; i < IMAGE_BUFFER_SIZE - 2 ; ++i)
+    for(uint16_t i = DERIV_DELTA ; i < IMAGE_BUFFER_SIZE - DERIV_DELTA ; ++i)
     {
-        pixel_derivative = (int16_t)green_pixels[i + 2] - (int16_t)green_pixels[i - 2];
+        pixel_derivative = (int16_t)green_pixels[i + DERIV_DELTA] - (int16_t)green_pixels[i - DERIV_DELTA];
         if(sensors_last_fall_found)   // if the beginning of a ball has been seen, we can look at the end of a ball
         {
-            sensors_sum += green_pixels[i];
+        	sensors_sum_green += green_pixels[i];
+        	sensors_sum_red += red_pixels[i];
             sensors_sum_inc++;
-            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD)
+            if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD && pixel_derivative)
             {
             	chprintf((BaseSequentialStream *)&SD3, "rise found\n");
-                if(sensors_sum < THRESHOLD_BALL_COLOR_IN_GREEN * (uint32_t)sensors_sum_inc)
+                if(sensors_sum_green < THRESHOLD_BALL_COLOR_IN_GREEN * (uint32_t)sensors_sum_inc && sensors_sum_red > THRESHOLD_BALL_COLOR_IN_RED * (uint32_t)sensors_sum_inc)
                 {
 					sensors_ball_found = true;
 					sensors_ball_angle = (compute_angle_from_image(i) + sensors_last_fall_angle) * 0.5f;
+					sensors_ball_seen_half_angle = sensors_last_fall_angle-sensors_ball_angle;
 
                     chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %f and %f\n", sensors_last_fall_angle, compute_angle_from_image(i));
                     chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", sensors_ball_angle);
@@ -147,13 +157,14 @@ void detection_in_image(uint8_t * green_pixels)
         {
         	sensors_last_fall_found = true;
         	sensors_last_fall_angle = compute_angle_from_image(i);
-            sensors_sum = 0;
+        	sensors_sum_green = 0;
+        	sensors_sum_red = 0;
             chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
         }
     }
 
     if(sensors_last_fall_found)
-    	sensors_last_fall_angle -= EPUCK_SEARCH_ROTATION_ANGLE;
+    	sensors_last_fall_angle += EPUCK_SEARCH_ROTATION_ANGLE;
 }
 
 void sensors_start(void)
@@ -169,14 +180,16 @@ void sensors_set_ball_to_be_search(void)
 {
 	sensors_ball_found = false;
 	sensors_last_fall_found = false;
-	sensors_sum = 0;
+	sensors_sum_green = 0;
+	sensors_sum_red = 0;
 	sensors_sum_inc = 0;
 }
 
-bool sensors_is_ball_found(float * ball_angle)
+bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
 {
-	if(sensors_ball_found)
-		*ball_angle = sensors_ball_angle;
+	*ball_angle = sensors_ball_angle;
+	*ball_seen_half_angle = sensors_ball_seen_half_angle;
+
 	return sensors_ball_found;
 }
 

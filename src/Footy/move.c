@@ -17,9 +17,6 @@
 
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
-// global variables to this module
-static float s_robot_angle = 0.f;
-
 
 void move_until_obstacle(int16_t speed)
 {
@@ -75,10 +72,9 @@ uint16_t move_rotate(float angle, int16_t speed)
 			s_robot_speed *= -1;
 	}
 
-	right_motor_set_speed(-s_robot_speed);
-	left_motor_set_speed(s_robot_speed);
+	right_motor_set_speed(s_robot_speed);
+	left_motor_set_speed(-s_robot_speed);
 
-	s_robot_angle += s_robot_speed > 0 ? angle : -angle;
 	systime_t time_start = chVTGetSystemTime();
 
 	chThdSleepMilliseconds(s_move_duration);
@@ -86,9 +82,4 @@ uint16_t move_rotate(float angle, int16_t speed)
 	right_motor_set_speed(0);
 
 	return s_move_duration - (chVTGetSystemTime() - time_start);
-}
-
-float move_get_angle(void)
-{
-	return s_robot_angle;
 }
