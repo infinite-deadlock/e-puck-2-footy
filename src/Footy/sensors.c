@@ -10,6 +10,9 @@
 #include <chprintf.h>					// mini printf-like functionality
 
 // EPFL-MICRO 315 library
+#include <sensors/proximity.h>					// IR sensors
+
+// EPFL-MICRO 315 library
 #include <camera/dcmi_camera.h>			// e-puck-2 Digital CaMera Interface
 #include <camera/po8030.h>				// e-puck-2 main frontal camera
 #include <sensors/VL53L0X/VL53L0X.h>	// e-puck-2 Time Of Flight sensor
@@ -33,6 +36,28 @@
 
 #define	MOVE_SECURITY_SPACE				50
 
+#define IR_SAMPLE_PERIOD				200
+#define IR_N_SAMPLE_AVERAGE				5 //low-pass filter
+#define IR_TRIGGER_VALUE				200///@Pierre: à calibrer ! Je n'ai pas réussi à trouver les valeurs typique retournées par get_calibrated_prox(), alors il faudrait le mesurer...
+#define IR_SPEED_IF_TRIGGERED			MOTOR_SPEED_LIMIT
+#define PROX_RIGHT						2
+#define PROX_RIGHT_FRONT				1
+#define PROX_RIGHT_BACK					3
+#define PROX_LEFT						5
+#define PROX_LEFT_FRONT					6
+#define PROX_LEFT_BACK					4
+
+// enumerations
+typedef enum {
+	SENSOR_RIGHT=0,
+	SENSOR_LEFT,
+	SENSOR_RIGHT_FRONT,
+	SENSOR_RIGHT_BACK,
+	SENSOR_LEFT_FRONT,
+	SENSOR_LEFT_BACK,
+	SENSORS_NUMBER,
+}IR_sensors;
+
 
 // semaphores
 static BSEMAPHORE_DECL(sensors_semaphore_image_ready_for_process, TRUE);
@@ -48,7 +73,10 @@ static uint32_t sensors_sum_green = 0;
 static uint32_t sensors_sum_red = 0;
 static uint16_t sensors_sum_inc = 0;
 
+bool sensors_IR_triggered[SENSORS_NUMBER];
+
 // local function prototypes
+void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
 float compute_angle_from_image(uint16_t ball_middle_pos);
 void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels);
 
@@ -122,6 +150,62 @@ static THD_FUNCTION(process_image, arg)
     }
 }
 
+static THD_WORKING_AREA(wa_watch_IR, 1024);
+static THD_FUNCTION(watch_IR, arg)
+{
+	// this function is used in a thread
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+    //low_pass filter (moving average)
+	uint16_t samples[SENSORS_NUMBER][IR_N_SAMPLE_AVERAGE] = { 0 };
+	uint8_t next_sample_index = 0;
+	uint32_t sum[SENSORS_NUMBER] = { 0 };
+
+    proximity_start();
+    calibrate_ir();
+
+    while(1)
+    {
+    	///@Pierre juste pour voir les valeurs retournées par les capteurs, si tu arrive à mettre la bonne condition dans IR_TRIGGER_VALUE
+    	///Pour l'instant j'ai aussi fait un abs() de la valeur retournée, juste un peu plus bas, parce qu'il me semble qu'elles sont de plus en plus négatives. Mais je ne suis pas sûr, tu pourras peut-être l'enlever.
+    	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        chprintf((BaseSequentialStream *)&SD3, "left IR value is %d\n", get_calibrated_prox(PROX_LEFT));
+        chprintf((BaseSequentialStream *)&SD3, "left front IR value is %d\n", get_calibrated_prox(PROX_LEFT_FRONT));
+        chprintf((BaseSequentialStream *)&SD3, "left back IR value is %d\n", get_calibrated_prox(PROX_LEFT_BACK));
+        chprintf((BaseSequentialStream *)&SD3, "right IR value is %d\n", get_calibrated_prox(PROX_RIGHT));
+        chprintf((BaseSequentialStream *)&SD3, "right front IR value is %d\n", get_calibrated_prox(PROX_RIGHT_FRONT));
+        chprintf((BaseSequentialStream *)&SD3, "right back IR value is %d\n", get_calibrated_prox(PROX_RIGHT_BACK));
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    	//read values IR sensors, moving sum
+    	add_value_sum_buffer(&sum[SENSOR_LEFT], samples[SENSOR_LEFT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT)));
+    	add_value_sum_buffer(&sum[SENSOR_LEFT_FRONT], samples[SENSOR_LEFT_FRONT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_FRONT)));
+    	add_value_sum_buffer(&sum[SENSOR_LEFT_BACK], samples[SENSOR_LEFT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_BACK)));
+    	add_value_sum_buffer(&sum[SENSOR_RIGHT], samples[SENSOR_RIGHT], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT)));
+    	add_value_sum_buffer(&sum[SENSOR_RIGHT_FRONT], samples[SENSOR_RIGHT_FRONT], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT_FRONT)));
+    	add_value_sum_buffer(&sum[SENSOR_RIGHT_BACK], samples[SENSOR_RIGHT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT_BACK)));
+    	++next_sample_index;
+    	next_sample_index %= IR_N_SAMPLE_AVERAGE;
+
+    	//check if triggered
+    	sensors_IR_triggered[SENSOR_LEFT] = sum[SENSOR_LEFT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggered[SENSOR_LEFT_FRONT] = sum[SENSOR_LEFT_FRONT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggered[SENSOR_LEFT_BACK] = sum[SENSOR_LEFT_BACK] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggered[SENSOR_RIGHT] = sum[SENSOR_RIGHT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggered[SENSOR_RIGHT_FRONT] = sum[SENSOR_RIGHT_FRONT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggered[SENSOR_RIGHT_BACK] = sum[SENSOR_RIGHT_BACK] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+
+    	chThdSleepMilliseconds(IR_SAMPLE_PERIOD);
+    }
+}
+
+void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value)
+{
+	*sum -= buffer[next_value_index];
+	buffer[next_value_index] = new_value;
+	*sum += new_value;
+}
+
 float compute_angle_from_image(uint16_t pos)
 {
     return atan((1-((float)pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
@@ -172,6 +256,8 @@ void sensors_start(void)
 	// image
 	chThdCreateStatic(wa_process_image, sizeof(wa_process_image), NORMALPRIO, process_image, NULL);
 	chThdCreateStatic(wa_acquire_image, sizeof(wa_acquire_image), NORMALPRIO, acquire_image, NULL);
+	// IR captors
+	chThdCreateStatic(wa_watch_IR, sizeof(wa_watch_IR), NORMALPRIO, watch_IR, NULL);
 	// TOF distance
 	VL53L0X_start();
 }
@@ -203,4 +289,33 @@ bool sensors_can_move(void)
 void * sensors_get_semaphore_authorization_move(void)
 {
 	return &sensors_semaphore_image_completed;
+}
+
+int16_t sensors_get_rotation_speed(int16_t default_speed)
+{
+	if(sensors_IR_triggered[SENSOR_RIGHT] && default_speed > 0)
+		return IR_SPEED_IF_TRIGGERED;
+	if(sensors_IR_triggered[SENSOR_LEFT] && default_speed < 0)
+		return -IR_SPEED_IF_TRIGGERED;
+
+	return default_speed;
+}
+
+int16_t sensors_get_linear_speed(int16_t default_speed)
+{
+	if(sensors_IR_triggered[SENSOR_LEFT_BACK] || sensors_IR_triggered[SENSOR_RIGHT_BACK])
+		return IR_SPEED_IF_TRIGGERED;
+
+	return default_speed;
+}
+
+bool sensors_manual_control(bool *rotation_left, bool *rotation_right)
+{
+	//rotation selected if one sensor of the diagonal is triggered
+	*rotation_left = sensors_IR_triggered[SENSOR_LEFT_BACK] || sensors_IR_triggered[SENSOR_RIGHT_FRONT];
+	*rotation_right = sensors_IR_triggered[SENSOR_LEFT_FRONT] || sensors_IR_triggered[SENSOR_RIGHT_BACK];
+
+	//manual control if at lest one sensor from both side is triggered
+	return (sensors_IR_triggered[SENSOR_LEFT_FRONT] || sensors_IR_triggered[SENSOR_LEFT] || sensors_IR_triggered[SENSOR_LEFT_BACK])
+			&& (sensors_IR_triggered[SENSOR_RIGHT_FRONT] || sensors_IR_triggered[SENSOR_RIGHT] || sensors_IR_triggered[SENSOR_RIGHT_BACK]);
 }

@@ -8,6 +8,7 @@
 #include "ch.h"							// main include files
 #include "hal.h"						// Hardware Abstraction Layer subsystem header
 #include "memory_protection.h"			// Memory access permissions
+#include "msgbus/messagebus.h"
 #include <usbcfg.h>						// USB services
 #include <chprintf.h>					// mini printf-like functionality
 
@@ -23,6 +24,9 @@
 #include "move.h"
 #include "central.h"
 
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
 
 static void serial_start(void)
 {
@@ -48,6 +52,7 @@ int main(void)
 	po8030_start();		// camera clock generation starting (PixelPlus PO8030)
 	motors_init();		// motors starting
 
+	messagebus_init(&bus, &bus_lock, &bus_condvar);
 	sensors_start();	// start all sensors for this project
 
 	central_control_loop();

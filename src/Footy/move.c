@@ -18,20 +18,25 @@
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
 
-void move_until_obstacle(int16_t speed)
+void move_until_obstacle(int16_t default_speed)
 {
 	bool is_moving = false;
+	int16_t actual_speed = 0;
+	int16_t new_speed;
 
-	speed = speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed;
-	speed = speed < 0 ? 0 : speed;
+	default_speed = default_speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : default_speed;
+	default_speed = default_speed < 0 ? 0 : default_speed;
 	while(1)
 	{
 		if(sensors_can_move())
 		{
-			if(!is_moving)
+			new_speed = sensors_get_linear_speed(default_speed);
+			if(new_speed != actual_speed)
 			{
-				left_motor_set_speed(speed);
-				right_motor_set_speed(speed);
+				actual_speed = new_speed;
+				left_motor_set_speed(actual_speed);
+				right_motor_set_speed(actual_speed);
+
 				is_moving = true;
 			}
 		}
@@ -39,8 +44,9 @@ void move_until_obstacle(int16_t speed)
 		{
 			if(is_moving)
 			{
-				left_motor_set_speed(0);
-				right_motor_set_speed(0);
+				actual_speed = 0;
+				left_motor_set_speed(actual_speed);
+				right_motor_set_speed(actual_speed);
 				is_moving = false;
 			}
 		}

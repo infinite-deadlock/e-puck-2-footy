@@ -25,10 +25,10 @@ uint16_t move_rotate(float angle, int16_t speed);
 /**
 * @brief   Move the robot straight until obstacle
 *
-* @param speed				Translation speed of wheels in step/s
+* @param default_speed				Translation speed of wheels in step/s, if not accelerated by IR control
 *
 */
-void move_until_obstacle(int16_t speed);
+void move_until_obstacle(int16_t default_speed);
 
 #ifdef __cplusplus
 }
