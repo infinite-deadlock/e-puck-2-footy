@@ -71,6 +71,8 @@ void central_control_loop(void)
 		move_rotate(ball_angle, DEFAULT_SPEED);
 		chThdSleepMilliseconds(1000);
 
+
+		chprintf((BaseSequentialStream *)&SD3, "ball_seen_half_angle is %f\n", ball_seen_half_angle);
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
 
 		move_until_obstacle(DEFAULT_SPEED);
@@ -78,7 +80,7 @@ void central_control_loop(void)
 	/*while(1)
 	{
 		chBSemSignal(&central_semaphore_image_request);
-		chBSemWait(central_get_semaphore_authorization_move());
+		chBSemWait(sensors_get_semaphore_authorization_move());
 		chThdSleepMilliseconds(6000);
 	}*/
 }

@@ -38,7 +38,7 @@
 
 #define IR_SAMPLE_PERIOD				200
 #define IR_N_SAMPLE_AVERAGE				5 //low-pass filter
-#define IR_TRIGGER_VALUE				200///@Pierre: à calibrer ! Je n'ai pas réussi à trouver les valeurs typique retournées par get_calibrated_prox(), alors il faudrait le mesurer...
+#define IR_TRIGGER_VALUE				20///@Pierre: à calibrer ! Je n'ai pas réussi à trouver les valeurs typique retournées par get_calibrated_prox(), alors il faudrait le mesurer...
 #define IR_SPEED_IF_TRIGGERED			MOTOR_SPEED_LIMIT
 #define PROX_RIGHT						2
 #define PROX_RIGHT_FRONT				1
@@ -225,15 +225,15 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
             sensors_sum_inc++;
             if(pixel_derivative >= GREEN_PIXEL_RISE_FALL_THRESHOLD && pixel_derivative)
             {
-            	chprintf((BaseSequentialStream *)&SD3, "rise found\n");
+            	//chprintf((BaseSequentialStream *)&SD3, "rise found\n");
                 if(sensors_sum_green < THRESHOLD_BALL_COLOR_IN_GREEN * (uint32_t)sensors_sum_inc && sensors_sum_red > THRESHOLD_BALL_COLOR_IN_RED * (uint32_t)sensors_sum_inc)
                 {
 					sensors_ball_found = true;
 					sensors_ball_angle = (compute_angle_from_image(i) + sensors_last_fall_angle) * 0.5f;
 					sensors_ball_seen_half_angle = sensors_last_fall_angle-sensors_ball_angle;
 
-                    chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %f and %f\n", sensors_last_fall_angle, compute_angle_from_image(i));
-                    chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", sensors_ball_angle);
+                    //chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %f and %f\n", sensors_last_fall_angle, compute_angle_from_image(i));
+                    //chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", sensors_ball_angle);
                 }
             }
         }
@@ -243,7 +243,7 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
         	sensors_last_fall_angle = compute_angle_from_image(i);
         	sensors_sum_green = 0;
         	sensors_sum_red = 0;
-            chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
+            //chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
         }
     }
 
@@ -281,8 +281,8 @@ bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
 
 bool sensors_can_move(void)
 {
-	/// @PI: Ne marche pas ï¿½ cause de l'orientation trop vers le haut du VL53L0X
-	debug_send_uint32_to_computer(VL53L0X_get_dist_mm());
+	/// @PI: Ne marche pas à cause de l'orientation trop vers le haut du VL53L0X
+	//debug_send_uint32_to_computer(VL53L0X_get_dist_mm());
 	return VL53L0X_get_dist_mm() > MOVE_SECURITY_SPACE;	// VL53L0X is now an opaque type outside this module.
 }
 
