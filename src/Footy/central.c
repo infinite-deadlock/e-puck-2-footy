@@ -61,7 +61,7 @@ void central_control_loop(void)
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
 		ball_distance = compute_distance(ball_seen_half_angle);
 		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, rotation_speed);
-		move_round_about(BALL_DIAMETER, rotation_speed);
+		move_round_about(BALL_DIAMETER/2+ROTATION_MARGIN, rotation_speed);
 
 
 		move_until_obstacle(rotation_speed);
