@@ -21,17 +21,13 @@
 
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
-//enumerations
-typedef enum{
-	STATIC = 0,
-	TRANSLATION,
-	ROTATION
-}Move_state;
-
 //Global variables
 static Move_state s_move_state;
 static bool s_boost_speed;
 static bool s_clockwise;
+
+//local functions prototypes
+static void check_dynamic_triggers(bool force_update);
 
 // semaphores
 static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
@@ -47,42 +43,13 @@ static THD_FUNCTION(check_dynamic, arg)
 
     bool stopped = false;
 
-    struct IR_triggers previous_triggers = sensors_get_IR_triggers();
-    struct IR_triggers current_triggers;
-
     s_move_state = STATIC;
     s_boost_speed = false;
 
     while(1)
     {
     	//manual control
-    	current_triggers = sensors_get_IR_triggers();
-    	switch(s_move_state)
-    	{
-			case	TRANSLATION:
-				if(current_triggers.back_triggered != previous_triggers.back_triggered)
-				{
-					s_boost_speed = current_triggers.back_triggered;
-					chBSemSignal(&move_semaphore_interrupt);
-				}
-				break;
-			case	ROTATION:
-				if(s_clockwise && current_triggers.left_triggered != previous_triggers.left_triggered)
-				{
-					s_boost_speed = current_triggers.left_triggered;
-					chBSemSignal(&move_semaphore_interrupt);
-				}
-				else if(!s_clockwise && current_triggers.right_triggered != previous_triggers.right_triggered)
-				{
-					s_boost_speed = current_triggers.right_triggered;
-					chBSemSignal(&move_semaphore_interrupt);
-				}
-				break;
-			case	STATIC:
-			default:
-				break;
-    	}
-    	previous_triggers = current_triggers;
+    	check_dynamic_triggers(false);
 
     	//obstacle
     	if(!stopped && !sensors_can_move())//stop moving
@@ -104,6 +71,41 @@ static THD_FUNCTION(check_dynamic, arg)
     }
 }
 
+static void check_dynamic_triggers(bool force_update)
+{
+    struct IR_triggers previous_triggers = sensors_get_IR_triggers();
+    struct IR_triggers current_triggers;
+
+	current_triggers = sensors_get_IR_triggers();
+	switch(s_move_state)
+	{
+		case	TRANSLATION:
+			if(force_update || current_triggers.back_triggered != previous_triggers.back_triggered)
+			{
+				s_boost_speed = current_triggers.back_triggered;
+				chBSemSignal(&move_semaphore_interrupt);
+			}
+			break;
+		case	ROTATION:
+			if(s_clockwise && (force_update || current_triggers.left_triggered != previous_triggers.left_triggered))
+			{
+				s_boost_speed = current_triggers.left_triggered;
+				chBSemSignal(&move_semaphore_interrupt);
+			}
+			else if(!s_clockwise && (force_update || current_triggers.right_triggered != previous_triggers.right_triggered))
+			{
+				s_boost_speed = current_triggers.right_triggered;
+				chBSemSignal(&move_semaphore_interrupt);
+			}
+			break;
+		case	STATIC:
+			s_boost_speed = false;
+			break;
+		default:
+			break;
+	}
+	previous_triggers = current_triggers;
+}
 
 static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration)
 {
@@ -141,7 +143,6 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
-	s_move_state = STATIC;
 }
 
 void move_init_threads(void)
@@ -203,7 +204,6 @@ void move_rotate(float angle, int16_t speed)
 			s_robot_speed *= -1;
 	}
 
-	s_move_state = ROTATION;
 	s_clockwise = s_robot_speed < 0;
 	make_move(-s_robot_speed, s_robot_speed, s_move_duration);
 }
@@ -228,7 +228,6 @@ void move_straight(float distance, int16_t speed)
 	if(distance < 0.f)
 		speed*=-1;
 
-	s_move_state = TRANSLATION;
 	make_move(speed, speed, s_move_duration);
 }
 void move_round_about(float radius, int16_t speed)
@@ -255,7 +254,12 @@ void move_round_about(float radius, int16_t speed)
 	}
 
 	move_rotate(90.f, speed);//rotate to be tangent
-	s_move_state = TRANSLATION;
 	make_move(s_speed_fast_wheel, s_speed_slow_wheel, s_move_duration);//half circle
 	move_rotate(-90.f, speed);//face center
+}
+
+void move_change_state(Move_state new_state)
+{
+	s_move_state = new_state;
+	check_dynamic_triggers(true);
 }

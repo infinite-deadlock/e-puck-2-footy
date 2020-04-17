@@ -34,6 +34,7 @@ void central_control_loop(void)
 
 		ball_found = false;
 		sensors_set_ball_to_be_search();
+		move_change_state(ROTATION);
 		while(!ball_found)
 		{
 			if(sensors_search_clockwise())
@@ -55,6 +56,7 @@ void central_control_loop(void)
 		}
 
 		move_rotate(ball_angle, SEARCH_SPEED);
+		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
@@ -64,6 +66,7 @@ void central_control_loop(void)
 		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, SEARCH_SPEED);
 		move_round_about(BALL_DIAMETER/2+ROTATION_MARGIN, SEARCH_SPEED);
 		move_straight(ball_distance+BALL_DIAMETER, SEARCH_SPEED);
+		move_change_state(STATIC);
 	}
 }
 

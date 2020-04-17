@@ -11,6 +11,13 @@
 extern "C" {
 #endif
 
+//enumerations
+typedef enum{
+	STATIC = 0,
+	TRANSLATION,
+	ROTATION
+}Move_state;
+
 /**
 * @brief   Init module threads
 *
@@ -42,6 +49,7 @@ void move_until_obstacle(int16_t speed);
 *
 */
 void move_straight(float distance, int16_t speed);
+
 /**
 * @brief   Move the robot in half circle around a point at radius in front of him, then face center
 *
@@ -50,6 +58,15 @@ void move_straight(float distance, int16_t speed);
 *
 */
 void move_round_about(float radius, int16_t speed);
+
+/**
+* @brief   Change robot movement state, for dynamic control
+*
+* @param new_state			New state of the robot
+*
+*/
+void move_change_state(Move_state new_state);
+
 
 #ifdef __cplusplus
 }
