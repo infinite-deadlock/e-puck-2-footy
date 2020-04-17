@@ -23,10 +23,8 @@ void move_init_threads(void);
 * @param angle				Relative angle of the desired rotation in deg
 * @param speed				Rotation speed of right wheel in step/s
 *
-* @return					Time difference between planned and executed [ms]
-*
 */
-uint16_t move_rotate(float angle, int16_t speed);
+void move_rotate(float angle, int16_t speed);
 
 /**
 * @brief   Move the robot straight until obstacle

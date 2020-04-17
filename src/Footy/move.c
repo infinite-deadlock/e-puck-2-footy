@@ -111,7 +111,7 @@ void move_until_obstacle(int16_t speed)
 	}
 }
 
-uint16_t move_rotate(float angle, int16_t speed)
+void move_rotate(float angle, int16_t speed)
 {
 	static uint32_t s_move_duration = 0;
 	static int s_robot_speed = 0;
@@ -135,10 +135,7 @@ uint16_t move_rotate(float angle, int16_t speed)
 			s_robot_speed *= -1;
 	}
 
-	systime_t time_start = chVTGetSystemTime();
 	make_move(-s_robot_speed, s_robot_speed, s_move_duration);
-
-	return s_move_duration - (chVTGetSystemTime() - time_start);
 }
 
 void move_straight(float distance, int16_t speed)
@@ -157,6 +154,9 @@ void move_straight(float distance, int16_t speed)
 
 		s_move_duration = abs((distance * TRANSLATION_DURATION_FACTOR) / speed);
 	}
+
+	if(distance < 0.f)
+		speed*=-1;
 
 	make_move(speed, speed, s_move_duration);
 }
