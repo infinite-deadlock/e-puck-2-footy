@@ -20,9 +20,9 @@
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
 //Global variables
-systime_t s_move_time_blocked;
 
 // semaphores
+static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
 static MUTEX_DECL(move_mutex_free_to_move);
 
 // threaded functions
@@ -35,18 +35,14 @@ static THD_FUNCTION(check_halt, arg)
 
     bool stopped = false;
 
-	s_move_time_blocked = chVTGetSystemTime();
-
     while(1)
     {
     	if(!stopped && !sensors_can_move())//stop moving
     	{
+    		chBSemSignal(&move_semaphore_interrupt);
     		chMtxLock(&move_mutex_free_to_move);
 
     		stopped = true;
-    		s_move_time_blocked = chVTGetSystemTime();
-    		left_motor_set_speed(0);
-    		right_motor_set_speed(0);
     	}
     	if(stopped && sensors_can_move())
     	{
@@ -62,30 +58,22 @@ static THD_FUNCTION(check_halt, arg)
 static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration)
 {
 	systime_t time_start;
-	int32_t time_moved = 0;
-	bool repeat = true;
 
 	do
 	{
-		chMtxLock(&move_mutex_free_to_move);//if not blocked
-
-	    time_start = chVTGetSystemTime();
+		chMtxLock(&move_mutex_free_to_move);//wait until not blocked
 		left_motor_set_speed(speed_left);
 		right_motor_set_speed(speed_right);
+	    time_start = chVTGetSystemTime();
 
-		chMtxUnlock(&move_mutex_free_to_move);
-
-		chThdSleepMilliseconds(duration);
+		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration));
 		left_motor_set_speed(0);
 		right_motor_set_speed(0);
-
-		chMtxLock(&move_mutex_free_to_move);
-		if(s_move_time_blocked <= time_start || duration > (time_moved=s_move_time_blocked-time_start))//move not blocked
-			repeat = false;
-		else//move was not done
-			duration-=time_moved;
 		chMtxUnlock(&move_mutex_free_to_move);
-	}while(!repeat);
+
+
+		duration-=chVTGetSystemTime()-time_start;
+	}while(duration > 0);
 }
 
 void move_init_threads(void)
