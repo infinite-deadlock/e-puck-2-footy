@@ -36,7 +36,10 @@ void central_control_loop(void)
 		sensors_set_ball_to_be_search();
 		while(!ball_found)
 		{
-			move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
+			if(sensors_search_clockwise())
+				move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
+			else
+				move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur

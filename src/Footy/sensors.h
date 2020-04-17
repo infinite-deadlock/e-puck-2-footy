@@ -21,6 +21,7 @@ void sensors_set_ball_to_be_search(void);
 struct IR_triggers sensors_get_IR_triggers(void);
 bool sensors_can_move(void);
 bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle);
+bool sensors_search_clockwise(void);
 
 #ifdef __cplusplus
 }

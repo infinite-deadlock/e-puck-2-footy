@@ -29,9 +29,9 @@ typedef enum{
 }Move_state;
 
 //Global variables
-Move_state s_move_state;
-bool s_boost_speed;
-bool s_clockwise;
+static Move_state s_move_state;
+static bool s_boost_speed;
+static bool s_clockwise;
 
 // semaphores
 static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
@@ -109,6 +109,7 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 {
 	systime_t time_start;
 	int16_t max_speed;
+	float boost_factor = 1.f;
 
 	//move
 	do
@@ -116,27 +117,26 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 		chMtxLock(&move_mutex_free_to_move);//wait until not blocked
 		if(s_boost_speed)
 		{
-			//calculate max speed
-			max_speed = speed_left > speed_right ? speed_left : speed_right;
-			max_speed*=BOOST_FACTOR;
-			max_speed = max_speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : max_speed;
-			max_speed = max_speed < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : max_speed;
-			//new speeds, linear boost
-			left_motor_set_speed(speed_left > speed_right ? max_speed : (int16_t)(speed_left * ((float)max_speed/speed_right)));
-			right_motor_set_speed(speed_left > speed_right ? (int16_t)(speed_right * ((float)max_speed/speed_left)) : max_speed);
+			//calculate boost_factor
+			max_speed = abs(abs(speed_left) > abs(speed_right) ? speed_left : speed_right);
+			boost_factor = max_speed*BOOST_FACTOR;
+			boost_factor = max_speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : boost_factor;
+			boost_factor /= max_speed;
 		}
 		else
-		{
-			left_motor_set_speed(speed_left);
-			right_motor_set_speed(speed_right);
-		}
+			boost_factor = 1.f;
+		duration /= boost_factor;
+
+		left_motor_set_speed(speed_left*boost_factor);
+		right_motor_set_speed(speed_right*boost_factor);
 	    time_start = chVTGetSystemTime();
 
 		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration));//exit if dynamic control or obstacle
 		chMtxUnlock(&move_mutex_free_to_move);
 
-
-		duration-=chVTGetSystemTime()-time_start;
+		//update duration
+		duration-=(uint32_t)(chVTGetSystemTime()-time_start);
+		duration *= boost_factor;
 	}while(duration > 0);
 
 	left_motor_set_speed(0);
@@ -234,27 +234,28 @@ void move_straight(float distance, int16_t speed)
 void move_round_about(float radius, int16_t speed)
 {
 	static float s_radius_previous = 0;
-	static int16_t s_speed_fast_wheel_previous = 0;
+	static int16_t s_speed_previous = 0;
+	static int16_t s_speed_fast_wheel = 0;
 	static int16_t s_speed_slow_wheel = 0;
 	static uint32_t s_move_duration = 0;
 
-	int16_t	speed_fast_wheel = speed*(radius+WHEEL_DISTANCE)/(radius+WHEEL_DISTANCE/2);
 
-	speed_fast_wheel = speed_fast_wheel > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed_fast_wheel;
-	speed_fast_wheel = speed_fast_wheel < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed_fast_wheel;
-
-	if(radius != s_radius_previous || speed_fast_wheel != s_speed_fast_wheel_previous)
+	if(radius != s_radius_previous || speed != s_speed_previous)
 	{
 		s_radius_previous = radius;
-		s_speed_fast_wheel_previous = speed_fast_wheel;
+		s_speed_previous = speed;
 
-		s_speed_slow_wheel = speed_fast_wheel/(1+WHEEL_DISTANCE/radius);
+		s_speed_fast_wheel = speed*(radius+WHEEL_DISTANCE)/(radius+WHEEL_DISTANCE/2);
+		s_speed_fast_wheel = s_speed_fast_wheel > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : s_speed_fast_wheel;
+		s_speed_fast_wheel = s_speed_fast_wheel < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : s_speed_fast_wheel;
 
-		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180° around his center
+		s_speed_slow_wheel = 2*s_speed_previous-s_speed_fast_wheel;
+
+		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180° around his center
 	}
 
-	move_rotate(90.f, speed_fast_wheel);//rotate to be tangent
+	move_rotate(90.f, speed);//rotate to be tangent
 	s_move_state = TRANSLATION;
-	make_move(speed_fast_wheel, s_speed_slow_wheel, s_move_duration);//half circle
-	move_rotate(-90.f, speed_fast_wheel);//face center
+	make_move(s_speed_fast_wheel, s_speed_slow_wheel, s_move_duration);//half circle
+	move_rotate(-90.f, speed);//face center
 }

@@ -36,7 +36,7 @@
 
 #define IR_SAMPLE_PERIOD				200
 #define IR_N_SAMPLE_AVERAGE				5 //low-pass filter
-#define IR_TRIGGER_VALUE				20
+#define IR_TRIGGER_VALUE				40
 #define PROX_LEFT						5
 #define PROX_RIGHT						2
 #define PROX_RIGHT_BACK					3
@@ -60,6 +60,7 @@ static bool sensors_ball_found = false;
 static float sensors_ball_angle;
 static float sensors_ball_seen_half_angle;
 static struct IR_triggers sensors_IR_triggers;
+static bool s_sensors_clockwise_search = true;
 
 // local function prototypes
 void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
@@ -119,10 +120,11 @@ static THD_FUNCTION(process_image, arg)
 		// get the pointer to the array filled with the last image in RGB565
         img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
-        for(uint16_t i = 0 ; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
+        for(uint16_t i = 0, j; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
         {
-        	green_pixels[i/2] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i + 1] >> 5)) & 63;
-        	red_pixels[i/2] = (img_raw_RGB565_pixels[i] >> 3);
+        	j = s_sensors_clockwise_search ? i/2 : IMAGE_BUFFER_SIZE-1-i/2;
+        	green_pixels[j] = (((img_raw_RGB565_pixels[i] & 7) << 3) | (img_raw_RGB565_pixels[i + 1] >> 5)) & 63;
+        	red_pixels[j] = (img_raw_RGB565_pixels[i] >> 3);
         }
 
         detection_in_image(green_pixels, red_pixels);
@@ -190,6 +192,7 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
     uint32_t sum_red = 0;
     uint16_t sum_inc = 0;
     bool last_fall_found = false;
+    bool rise_found = false;
     float last_fall_angle;
 
     for(uint16_t i = DERIV_DELTA ; i < IMAGE_BUFFER_SIZE - DERIV_DELTA ; ++i)
@@ -222,7 +225,16 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
         	sum_red = 0;
             chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
         }
+        if(pixel_derivative >= -GREEN_PIXEL_RISE_FALL_THRESHOLD)
+        	rise_found = true;
     }
+
+    if(sensors_ball_found && s_sensors_clockwise_search)
+    	sensors_ball_angle*=-1;
+
+    //ball cut
+    if(!last_fall_found && rise_found && green_pixels[0] < THRESHOLD_BALL_COLOR_IN_GREEN && red_pixels[0] > THRESHOLD_BALL_COLOR_IN_RED)
+    	s_sensors_clockwise_search = false;//voluntarily not an inversion -> avoid ping-pong
 }
 
 void sensors_start(void)
@@ -239,6 +251,7 @@ void sensors_start(void)
 void sensors_set_ball_to_be_search(void)
 {
 	sensors_ball_found = false;
+	s_sensors_clockwise_search = true;
 }
 
 bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
@@ -247,6 +260,11 @@ bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
 	*ball_seen_half_angle = sensors_ball_seen_half_angle;
 
 	return sensors_ball_found;
+}
+
+bool sensors_search_clockwise(void)
+{
+	return s_sensors_clockwise_search;
 }
 
 struct IR_triggers sensors_get_IR_triggers(void)
