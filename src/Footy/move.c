@@ -19,6 +19,67 @@
 
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
+//Global variables
+
+// semaphores
+static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
+static MUTEX_DECL(move_mutex_free_to_move);
+
+// threaded functions
+static THD_WORKING_AREA(wa_check_halt, 256);
+static THD_FUNCTION(check_halt, arg)
+{
+	// this function is used in a thread
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+    bool stopped = false;
+
+    while(1)
+    {
+    	if(!stopped && !sensors_can_move())//stop moving
+    	{
+    		chBSemSignal(&move_semaphore_interrupt);
+    		chMtxLock(&move_mutex_free_to_move);
+
+    		stopped = true;
+    	}
+    	if(stopped && sensors_can_move())
+    	{
+    		chMtxUnlock(&move_mutex_free_to_move);
+
+    		stopped = false;
+    	}
+		chThdSleepMilliseconds(OBSTACLE_DETECT_DELAY);
+    }
+}
+
+
+static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration)
+{
+	systime_t time_start;
+
+	do
+	{
+		chMtxLock(&move_mutex_free_to_move);//wait until not blocked
+		left_motor_set_speed(speed_left);
+		right_motor_set_speed(speed_right);
+	    time_start = chVTGetSystemTime();
+
+		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration));
+		left_motor_set_speed(0);
+		right_motor_set_speed(0);
+		chMtxUnlock(&move_mutex_free_to_move);
+
+
+		duration-=chVTGetSystemTime()-time_start;
+	}while(duration > 0);
+}
+
+void move_init_threads(void)
+{
+	chThdCreateStatic(wa_check_halt, sizeof(wa_check_halt), NORMALPRIO, check_halt, NULL);
+}
 
 void move_until_obstacle(int16_t speed)
 {
@@ -74,14 +135,8 @@ uint16_t move_rotate(float angle, int16_t speed)
 			s_robot_speed *= -1;
 	}
 
-	right_motor_set_speed(s_robot_speed);
-	left_motor_set_speed(-s_robot_speed);
-
 	systime_t time_start = chVTGetSystemTime();
-
-	chThdSleepMilliseconds(s_move_duration);
-	left_motor_set_speed(0);
-	right_motor_set_speed(0);
+	make_move(-s_robot_speed, s_robot_speed, s_move_duration);
 
 	return s_move_duration - (chVTGetSystemTime() - time_start);
 }
@@ -103,13 +158,7 @@ void move_straight(float distance, int16_t speed)
 		s_move_duration = abs((distance * TRANSLATION_DURATION_FACTOR) / speed);
 	}
 
-	left_motor_set_speed(speed);
-	right_motor_set_speed(speed);
-
-	chThdSleepMilliseconds(s_move_duration);
-	left_motor_set_speed(0);
-	right_motor_set_speed(0);
-
+	make_move(speed, speed, s_move_duration);
 }
 void move_round_about(float radius, int16_t speed_fast_wheel)
 {
@@ -132,14 +181,6 @@ void move_round_about(float radius, int16_t speed_fast_wheel)
 	}
 
 	move_rotate(90.f, speed_fast_wheel);//rotate to be tangeant
-
-	//half circle
-	left_motor_set_speed(speed_fast_wheel);
-	right_motor_set_speed(s_speed_slow_wheel);
-
-	chThdSleepMilliseconds(s_move_duration);
-	left_motor_set_speed(0);
-	right_motor_set_speed(0);
-
+	make_move(speed_fast_wheel, s_speed_slow_wheel, s_move_duration);//half circle
 	move_rotate(-90.f, speed_fast_wheel);//face center
 }
