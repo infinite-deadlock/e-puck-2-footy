@@ -10,5 +10,6 @@
 #define EPUCK_SEARCH_ROTATION_ANGLE 24
 
 #define BALL_DIAMETER				37			// ball diameter, in mm
+#define ROTATION_MARGIN				50			// distance from ball when rotating around, in mm
 
 #endif // CONSTANTES_H_

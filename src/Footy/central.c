@@ -16,19 +16,22 @@ static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
 static float compute_distance(float ball_seen_half_angle)
 {
-	return	BALL_DIAMETER/2/sin(ball_seen_half_angle);//x=R/sin(alpha/2)
+	return	fabs(BALL_DIAMETER/2/sin(ball_seen_half_angle/180*M_PI));//x=R/sin(alpha/2)
 }
 
 void central_control_loop(void)
 {
-	// Ce symptôme disparaît quand on essaye de connecter l'e-puck
+	// Ce symptï¿½me disparaï¿½t quand on essaye de connecter l'e-puck
 	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
 
 	float ball_angle = 0.f;
 	float ball_seen_half_angle = 0.f;
+	float ball_distance = 0.f;
 	bool ball_found = false;
 
-	int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
+	//int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
+	int16_t rotation_search_speed = MOTOR_SPEED_LIMIT / 2;
+	int16_t rotation_dodge_speed = MOTOR_SPEED_LIMIT;
 	while(1)
 	{
 		chThdSleepMilliseconds(5000);
@@ -39,7 +42,7 @@ void central_control_loop(void)
 		{
 			// speed 50 in 222 ms
 			// speed 40 in 277 ms
-			move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, rotation_speed);
+			move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, rotation_search_speed);
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
@@ -54,12 +57,16 @@ void central_control_loop(void)
 				break;
 		}
 
-		move_rotate(ball_angle, rotation_speed);
+		move_rotate(ball_angle, rotation_search_speed);
 		chThdSleepMilliseconds(1000);
 
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
+		ball_distance = compute_distance(ball_seen_half_angle);
+		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, rotation_dodge_speed);
+		move_round_about(BALL_DIAMETER/2+ROTATION_MARGIN, rotation_dodge_speed);
 
-		move_until_obstacle(rotation_speed);
+
+		move_until_obstacle(rotation_dodge_speed);
 	}
 	/*while(1)
 	{
