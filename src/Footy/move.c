@@ -17,17 +17,29 @@
 //#define ROTATION_DURATION_FACTOR	1000 * ((2*M_PI / 360.) * (WHEEL_DISTANCE / 2))*(MOTOR_STEPS_PER_TURN / (M_PI * WHEEL_DIAMETER)) //=1000* (WHEEL_DISTANCE/WHEEL_DIAMETER) * (MOTOR_STEPS_PER_TURN/360)
 #define ROTATION_DURATION_FACTOR	3590.78590786f //milli_step/deg -> must be multiplied by angle and divided by speed in step/s
 
+#define BOOST_FACTOR		2
+
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
+//enumerations
+typedef enum{
+	STATIC = 0,
+	TRANSLATION,
+	ROTATION
+}Move_state;
+
 //Global variables
+Move_state s_move_state;
+bool s_boost_speed;
+bool s_clockwise;
 
 // semaphores
 static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
 static MUTEX_DECL(move_mutex_free_to_move);
 
 // threaded functions
-static THD_WORKING_AREA(wa_check_halt, 256);
-static THD_FUNCTION(check_halt, arg)
+static THD_WORKING_AREA(wa_check_dynamic, 256);
+static THD_FUNCTION(check_dynamic, arg)
 {
 	// this function is used in a thread
     chRegSetThreadName(__FUNCTION__);
@@ -35,11 +47,49 @@ static THD_FUNCTION(check_halt, arg)
 
     bool stopped = false;
 
+    struct IR_triggers previous_triggers = sensors_get_IR_triggers();
+    struct IR_triggers current_triggers;
+
+    s_move_state = STATIC;
+    s_boost_speed = false;
+
     while(1)
     {
+    	//manual control
+    	current_triggers = sensors_get_IR_triggers();
+    	switch(s_move_state)
+    	{
+			case	TRANSLATION:
+				if(current_triggers.back_triggered != previous_triggers.back_triggered)
+				{
+					s_boost_speed = current_triggers.back_triggered;
+					chBSemSignal(&move_semaphore_interrupt);
+				}
+				break;
+			case	ROTATION:
+				if(s_clockwise && current_triggers.left_triggered != previous_triggers.left_triggered)
+				{
+					s_boost_speed = current_triggers.left_triggered;
+					chBSemSignal(&move_semaphore_interrupt);
+				}
+				else if(!s_clockwise && current_triggers.right_triggered != previous_triggers.right_triggered)
+				{
+					s_boost_speed = current_triggers.right_triggered;
+					chBSemSignal(&move_semaphore_interrupt);
+				}
+				break;
+			case	STATIC:
+			default:
+				break;
+    	}
+    	previous_triggers = current_triggers;
+
+    	//obstacle
     	if(!stopped && !sensors_can_move())//stop moving
     	{
     		chBSemSignal(&move_semaphore_interrupt);
+    		left_motor_set_speed(0);
+    		right_motor_set_speed(0);
     		chMtxLock(&move_mutex_free_to_move);
 
     		stopped = true;
@@ -58,27 +108,45 @@ static THD_FUNCTION(check_halt, arg)
 static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration)
 {
 	systime_t time_start;
+	int16_t max_speed;
 
+	//move
 	do
 	{
 		chMtxLock(&move_mutex_free_to_move);//wait until not blocked
-		left_motor_set_speed(speed_left);
-		right_motor_set_speed(speed_right);
+		if(s_boost_speed)
+		{
+			//calculate max speed
+			max_speed = speed_left > speed_right ? speed_left : speed_right;
+			max_speed*=BOOST_FACTOR;
+			max_speed = max_speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : max_speed;
+			max_speed = max_speed < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : max_speed;
+			//new speeds, linear boost
+			left_motor_set_speed(speed_left > speed_right ? max_speed : (int16_t)(speed_left * ((float)max_speed/speed_right)));
+			right_motor_set_speed(speed_left > speed_right ? (int16_t)(speed_right * ((float)max_speed/speed_left)) : max_speed);
+		}
+		else
+		{
+			left_motor_set_speed(speed_left);
+			right_motor_set_speed(speed_right);
+		}
 	    time_start = chVTGetSystemTime();
 
-		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration));
-		left_motor_set_speed(0);
-		right_motor_set_speed(0);
+		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration));//exit if dynamic control or obstacle
 		chMtxUnlock(&move_mutex_free_to_move);
 
 
 		duration-=chVTGetSystemTime()-time_start;
 	}while(duration > 0);
+
+	left_motor_set_speed(0);
+	right_motor_set_speed(0);
+	s_move_state = STATIC;
 }
 
 void move_init_threads(void)
 {
-	chThdCreateStatic(wa_check_halt, sizeof(wa_check_halt), NORMALPRIO, check_halt, NULL);
+	chThdCreateStatic(wa_check_dynamic, sizeof(wa_check_dynamic), NORMALPRIO, check_dynamic, NULL);
 }
 
 void move_until_obstacle(int16_t speed)
@@ -135,6 +203,8 @@ void move_rotate(float angle, int16_t speed)
 			s_robot_speed *= -1;
 	}
 
+	s_move_state = ROTATION;
+	s_clockwise = s_robot_speed < 0;
 	make_move(-s_robot_speed, s_robot_speed, s_move_duration);
 }
 
@@ -158,14 +228,17 @@ void move_straight(float distance, int16_t speed)
 	if(distance < 0.f)
 		speed*=-1;
 
+	s_move_state = TRANSLATION;
 	make_move(speed, speed, s_move_duration);
 }
-void move_round_about(float radius, int16_t speed_fast_wheel)
+void move_round_about(float radius, int16_t speed)
 {
 	static float s_radius_previous = 0;
 	static int16_t s_speed_fast_wheel_previous = 0;
 	static int16_t s_speed_slow_wheel = 0;
 	static uint32_t s_move_duration = 0;
+
+	int16_t	speed_fast_wheel = speed*(radius+WHEEL_DISTANCE)/(radius+WHEEL_DISTANCE/2);
 
 	speed_fast_wheel = speed_fast_wheel > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed_fast_wheel;
 	speed_fast_wheel = speed_fast_wheel < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed_fast_wheel;
@@ -180,7 +253,8 @@ void move_round_about(float radius, int16_t speed_fast_wheel)
 		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180° around his center
 	}
 
-	move_rotate(90.f, speed_fast_wheel);//rotate to be tangeant
+	move_rotate(90.f, speed_fast_wheel);//rotate to be tangent
+	s_move_state = TRANSLATION;
 	make_move(speed_fast_wheel, s_speed_slow_wheel, s_move_duration);//half circle
 	move_rotate(-90.f, speed_fast_wheel);//face center
 }

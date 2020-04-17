@@ -46,7 +46,7 @@ void move_straight(float distance, int16_t speed);
 * @brief   Move the robot in half circle around a point at radius in front of him, then face center
 *
 * @param radius				Circle radius in mm
-* @param speed				Translation speed of wheels in step/s
+* @param speed				Translation speed of center in step/s
 *
 */
 void move_round_about(float radius, int16_t speed);

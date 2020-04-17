@@ -13,6 +13,7 @@
 #include <camera/dcmi_camera.h>			// e-puck-2 Digital CaMera Interface
 #include <camera/po8030.h>				// e-puck-2 main frontal camera
 #include <sensors/VL53L0X/VL53L0X.h>	// e-puck-2 Time Of Flight sensor
+#include <sensors/proximity.h>					// IR sensors
 
 // this project files
 #include "debug.h"
@@ -33,6 +34,22 @@
 
 #define	MOVE_SECURITY_SPACE				50
 
+#define IR_SAMPLE_PERIOD				200
+#define IR_N_SAMPLE_AVERAGE				5 //low-pass filter
+#define IR_TRIGGER_VALUE				20
+#define PROX_LEFT						5
+#define PROX_RIGHT						2
+#define PROX_RIGHT_BACK					3
+#define PROX_LEFT_BACK					4
+
+// enumerations
+typedef enum {
+	SENSOR_LEFT=0,
+	SENSOR_RIGHT,
+	SENSOR_RIGHT_BACK,
+	SENSOR_LEFT_BACK,
+	SENSORS_NUMBER,
+}IR_sensors;
 
 // semaphores
 static BSEMAPHORE_DECL(sensors_semaphore_image_ready_for_process, TRUE);
@@ -42,8 +59,10 @@ static BSEMAPHORE_DECL(sensors_semaphore_image_completed, TRUE);
 static bool sensors_ball_found = false;
 static float sensors_ball_angle;
 static float sensors_ball_seen_half_angle;
+static struct IR_triggers sensors_IR_triggers;
 
 // local function prototypes
+void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
 float compute_angle_from_image(uint16_t ball_middle_pos);
 void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels);
 
@@ -117,6 +136,48 @@ static THD_FUNCTION(process_image, arg)
     }
 }
 
+static THD_WORKING_AREA(wa_watch_IR, 1024);
+static THD_FUNCTION(watch_IR, arg)
+{
+	// this function is used in a thread
+    chRegSetThreadName(__FUNCTION__);
+    (void)arg;
+
+    //low_pass filter (moving average)
+	uint16_t samples[SENSORS_NUMBER][IR_N_SAMPLE_AVERAGE] = { 0 };
+	uint8_t next_sample_index = 0;
+	uint32_t sum[SENSORS_NUMBER] = { 0 };
+
+    proximity_start();
+    calibrate_ir();
+
+    while(1)
+    {
+    	//read values IR sensors, moving sum
+    	add_value_sum_buffer(&sum[SENSOR_LEFT], samples[SENSOR_LEFT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT)));
+    	add_value_sum_buffer(&sum[SENSOR_LEFT_BACK], samples[SENSOR_LEFT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_BACK)));
+    	add_value_sum_buffer(&sum[SENSOR_RIGHT], samples[SENSOR_RIGHT], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT)));
+    	add_value_sum_buffer(&sum[SENSOR_RIGHT_BACK], samples[SENSOR_RIGHT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT_BACK)));
+    	++next_sample_index;
+    	next_sample_index %= IR_N_SAMPLE_AVERAGE;
+
+    	//check if triggered
+    	sensors_IR_triggers.left_triggered = sum[SENSOR_LEFT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggers.right_triggered = sum[SENSOR_RIGHT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+    	sensors_IR_triggers.back_triggered = sum[SENSOR_RIGHT_BACK] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE
+    												|| sum[SENSOR_LEFT_BACK] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
+
+    	chThdSleepMilliseconds(IR_SAMPLE_PERIOD);
+    }
+}
+
+void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value)
+{
+	*sum -= buffer[next_value_index];
+	buffer[next_value_index] = new_value;
+	*sum += new_value;
+}
+
 float compute_angle_from_image(uint16_t pos)
 {
     return atan((1-((float)pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
@@ -169,6 +230,8 @@ void sensors_start(void)
 	// image
 	chThdCreateStatic(wa_process_image, sizeof(wa_process_image), NORMALPRIO, process_image, NULL);
 	chThdCreateStatic(wa_acquire_image, sizeof(wa_acquire_image), NORMALPRIO, acquire_image, NULL);
+	// IR captors
+	chThdCreateStatic(wa_watch_IR, sizeof(wa_watch_IR), NORMALPRIO, watch_IR, NULL);
 	// TOF distance
 	VL53L0X_start();
 }
@@ -186,6 +249,10 @@ bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
 	return sensors_ball_found;
 }
 
+struct IR_triggers sensors_get_IR_triggers(void)
+{
+	return sensors_IR_triggers;
+}
 bool sensors_can_move(void)
 {
 	/// @PI: Ne marche pas � cause de l'orientation trop vers le haut du VL53L0X

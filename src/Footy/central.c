@@ -10,6 +10,7 @@
 #include "constantes.h"
 
 // local defines
+#define SEARCH_SPEED	MOTOR_SPEED_LIMIT / 2
 
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
@@ -21,17 +22,12 @@ static float compute_distance(float ball_seen_half_angle)
 
 void central_control_loop(void)
 {
-	// Ce sympt�me dispara�t quand on essaye de connecter l'e-puck
-	// chThdSleepMilliseconds(5000); // wait for user to place e-puck on ground
-
 	float ball_angle = 0.f;
 	float ball_seen_half_angle = 0.f;
 	float ball_distance = 0.f;
 	bool ball_found = false;
 
 	//int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
-	int16_t rotation_search_speed = MOTOR_SPEED_LIMIT / 2;
-	int16_t rotation_dodge_speed = MOTOR_SPEED_LIMIT;
 	while(1)
 	{
 		chThdSleepMilliseconds(5000);
@@ -40,9 +36,7 @@ void central_control_loop(void)
 		sensors_set_ball_to_be_search();
 		while(!ball_found)
 		{
-			// speed 50 in 222 ms
-			// speed 40 in 277 ms
-			move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, rotation_search_speed);
+			move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
 
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
@@ -57,23 +51,17 @@ void central_control_loop(void)
 				break;
 		}
 
-		move_rotate(ball_angle, rotation_search_speed);
+		move_rotate(ball_angle, SEARCH_SPEED);
 		chThdSleepMilliseconds(1000);
 
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
 		ball_distance = compute_distance(ball_seen_half_angle);
-		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, rotation_dodge_speed);
-		move_round_about(BALL_DIAMETER/2+ROTATION_MARGIN, rotation_dodge_speed);
 
-
-		move_until_obstacle(rotation_dodge_speed);
+		//fetch the ball
+		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, SEARCH_SPEED);
+		move_round_about(BALL_DIAMETER/2+ROTATION_MARGIN, SEARCH_SPEED);
+		move_straight(ball_distance+BALL_DIAMETER, SEARCH_SPEED);
 	}
-	/*while(1)
-	{
-		chBSemSignal(&central_semaphore_image_request);
-		chBSemWait(central_get_semaphore_authorization_move());
-		chThdSleepMilliseconds(6000);
-	}*/
 }
 
 void * central_get_semaphore_authorization_acquire(void)

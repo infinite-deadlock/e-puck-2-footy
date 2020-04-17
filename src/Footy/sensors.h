@@ -8,9 +8,17 @@
 extern "C" {
 #endif
 
+// structures
+struct IR_triggers {
+	bool left_triggered;
+	bool right_triggered;
+	bool back_triggered;
+};
+
 void sensors_start(void);
 void * sensors_get_semaphore_authorization_move(void);
 void sensors_set_ball_to_be_search(void);
+struct IR_triggers sensors_get_IR_triggers(void);
 bool sensors_can_move(void);
 bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle);
 
