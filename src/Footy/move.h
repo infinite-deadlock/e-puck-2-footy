@@ -31,7 +31,7 @@ void move_init_threads(void);
 * @param speed				Rotation speed of right wheel in step/s
 *
 */
-void move_rotate(float angle, int16_t speed);
+void move_rotate(int8_t angle, int16_t speed);
 
 /**
 * @brief   Move the robot straight until obstacle
@@ -48,7 +48,7 @@ void move_until_obstacle(int16_t speed);
 * @param speed				Translation speed of wheels in step/s
 *
 */
-void move_straight(float distance, int16_t speed);
+void move_straight(int16_t distance, int16_t speed);
 
 /**
 * @brief   Move the robot in half circle around a point at radius in front of him, then face center
@@ -57,7 +57,7 @@ void move_straight(float distance, int16_t speed);
 * @param speed				Translation speed of center in step/s
 *
 */
-void move_round_about(float radius, int16_t speed);
+void move_round_about(int16_t radius, int16_t speed);
 
 /**
 * @brief   Change robot movement state, for dynamic control

@@ -15,19 +15,18 @@
 // semaphores
 static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
 
-static float compute_distance(float ball_seen_half_angle)
+static int16_t compute_distance(int8_t ball_seen_half_angle)
 {
-	return	fabs(BALL_DIAMETER/2/sin(ball_seen_half_angle/180*M_PI));//x=R/sin(alpha/2)
+	return	MM2EPUCK(fabs(BALL_DIAMETER/2/sin(ball_seen_half_angle/DEG2EPUCK(180)*M_PI)));//x=R/sin(alpha/2)
 }
 
 void central_control_loop(void)
 {
-	float ball_angle = 0.f;
-	float ball_seen_half_angle = 0.f;
-	float ball_distance = 0.f;
+	int8_t ball_angle = 0;
+	int8_t ball_seen_half_angle = 0;
+	int16_t ball_distance = 0;
 	bool ball_found = false;
 
-	//int16_t rotation_speed = MOTOR_SPEED_LIMIT / 2;
 	while(1)
 	{
 		chThdSleepMilliseconds(5000);
@@ -59,13 +58,13 @@ void central_control_loop(void)
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
-        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", compute_distance(ball_seen_half_angle));
+        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", EPUCK2MM(compute_distance(ball_seen_half_angle)));
 		ball_distance = compute_distance(ball_seen_half_angle);
 
 		//fetch the ball
-		move_straight(ball_distance-BALL_DIAMETER/2-ROTATION_MARGIN, SEARCH_SPEED);
-		move_round_about(BALL_DIAMETER/2+ROTATION_MARGIN, SEARCH_SPEED);
-		move_straight(ball_distance+BALL_DIAMETER, SEARCH_SPEED);
+		move_straight(ball_distance-MM2EPUCK(BALL_DIAMETER)/2-ROTATION_MARGIN, SEARCH_SPEED);
+		move_round_about(MM2EPUCK(BALL_DIAMETER)/2+ROTATION_MARGIN, SEARCH_SPEED);
+		move_straight(ball_distance+MM2EPUCK(BALL_DIAMETER), SEARCH_SPEED);
 		move_change_state(STATIC);
 	}
 }

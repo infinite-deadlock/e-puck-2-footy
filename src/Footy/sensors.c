@@ -57,15 +57,15 @@ static BSEMAPHORE_DECL(sensors_semaphore_image_completed, TRUE);
 
 // global variables to this module
 static bool sensors_ball_found = false;
-static float sensors_ball_angle;
-static float sensors_ball_seen_half_angle;
+static int8_t sensors_ball_angle;
+static int8_t sensors_ball_seen_half_angle;
 static struct IR_triggers sensors_IR_triggers;
 static bool s_sensors_clockwise_search = true;
 static bool s_sensors_invert_rotation = false;
 
 // local function prototypes
 void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
-float compute_angle_from_image(uint16_t ball_middle_pos);
+int8_t compute_angle_from_image(uint16_t ball_middle_pos);
 void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels);
 
 // threaded functions
@@ -181,9 +181,9 @@ void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_
 	*sum += new_value;
 }
 
-float compute_angle_from_image(uint16_t pos)
+int8_t compute_angle_from_image(uint16_t pos)
 {
-    return atan((1-((float)pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI;
+    return DEG2EPUCK(atan((1-((float)pos / 320)) * TAN_45_OVER_2_CONST) * 180.f / M_PI);
 }
 
 void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
@@ -193,8 +193,7 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
     uint32_t sum_red = 0;
     uint16_t sum_inc = 0;
     bool last_fall_found = false;
-    bool rise_found = false;
-    float last_fall_angle;
+    int8_t last_fall_angle;
 
     for(uint16_t i = DERIV_DELTA ; i < IMAGE_BUFFER_SIZE - DERIV_DELTA ; ++i)
     {
@@ -210,7 +209,7 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
                 if(sum_green < THRESHOLD_BALL_COLOR_IN_GREEN * (uint32_t)sum_inc && sum_red > THRESHOLD_BALL_COLOR_IN_RED * (uint32_t)sum_inc)
                 {
 					sensors_ball_found = true;
-					sensors_ball_angle = (compute_angle_from_image(i) + last_fall_angle) * 0.5f;
+					sensors_ball_angle = (compute_angle_from_image(i) + last_fall_angle)/2;
 					sensors_ball_seen_half_angle = last_fall_angle-sensors_ball_angle;
 
                     chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %f and %f\n", last_fall_angle, compute_angle_from_image(i));
@@ -226,8 +225,6 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
         	sum_red = 0;
             chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
         }
-        if(pixel_derivative >= -GREEN_PIXEL_RISE_FALL_THRESHOLD)
-        	rise_found = true;
     }
 
     if(sensors_ball_found && s_sensors_clockwise_search)
@@ -258,7 +255,7 @@ void sensors_set_ball_to_be_search(void)
 	s_sensors_clockwise_search = true;
 }
 
-bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
+bool sensors_is_ball_found(int8_t * ball_angle, int8_t * ball_seen_half_angle)
 {
 	*ball_angle = sensors_ball_angle;
 	*ball_seen_half_angle = sensors_ball_seen_half_angle;
