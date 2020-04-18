@@ -37,15 +37,10 @@
 #define IR_SAMPLE_PERIOD				200
 #define IR_N_SAMPLE_AVERAGE				5 //low-pass filter
 #define IR_TRIGGER_VALUE				40
-
 #define PROX_LEFT						5
 #define PROX_RIGHT						2
 #define PROX_RIGHT_BACK					3
 #define PROX_LEFT_BACK					4
-/*#define PROX_LEFT						3
-#define PROX_RIGHT						4
-#define PROX_RIGHT_BACK					3
-#define PROX_LEFT_BACK					4*/
 
 // enumerations
 typedef enum {
@@ -66,6 +61,7 @@ static float sensors_ball_angle;
 static float sensors_ball_seen_half_angle;
 static struct IR_triggers sensors_IR_triggers;
 static bool s_sensors_clockwise_search = true;
+static bool s_sensors_invert_rotation = false;
 
 // local function prototypes
 void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
@@ -237,9 +233,12 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
     if(sensors_ball_found && s_sensors_clockwise_search)
     	sensors_ball_angle*=-1;
 
-    //ball cut
-    if(!last_fall_found && rise_found && green_pixels[0] < THRESHOLD_BALL_COLOR_IN_GREEN && red_pixels[0] > THRESHOLD_BALL_COLOR_IN_RED)
-    	s_sensors_clockwise_search = false;//voluntarily not an inversion -> avoid ping-pong
+    //ball cut or manual inversion
+    if(s_sensors_invert_rotation)
+    {
+    	s_sensors_invert_rotation = false;
+    	s_sensors_clockwise_search = !s_sensors_clockwise_search;
+    }
 }
 
 void sensors_start(void)
@@ -270,6 +269,11 @@ bool sensors_is_ball_found(float * ball_angle, float * ball_seen_half_angle)
 bool sensors_search_clockwise(void)
 {
 	return s_sensors_clockwise_search;
+}
+
+void sensors_invert_rotation(void)
+{
+	s_sensors_invert_rotation = true;
 }
 
 struct IR_triggers sensors_get_IR_triggers(void)

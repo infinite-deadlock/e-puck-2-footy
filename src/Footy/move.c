@@ -31,6 +31,8 @@ static void check_dynamic_triggers(bool force_update);
 
 // semaphores
 static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
+
+// mutexes
 static MUTEX_DECL(move_mutex_free_to_move);
 
 // threaded functions
@@ -87,15 +89,16 @@ static void check_dynamic_triggers(bool force_update)
 			}
 			break;
 		case	ROTATION:
-			if(s_clockwise && (force_update || current_triggers.left_triggered != previous_triggers.left_triggered))
+			if(force_update || (s_clockwise && current_triggers.left_triggered != previous_triggers.left_triggered) || (!s_clockwise && current_triggers.right_triggered != previous_triggers.right_triggered))
 			{
-				s_boost_speed = current_triggers.left_triggered;
+				//Triggered in same direction as rotation
+				s_boost_speed = (s_clockwise && current_triggers.left_triggered) || (!s_clockwise && current_triggers.right_triggered);
 				chBSemSignal(&move_semaphore_interrupt);
 			}
-			else if(!s_clockwise && (force_update || current_triggers.right_triggered != previous_triggers.right_triggered))
+			else if((s_clockwise && current_triggers.right_triggered) || (!s_clockwise && current_triggers.left_triggered))
 			{
-				s_boost_speed = current_triggers.right_triggered;
-				chBSemSignal(&move_semaphore_interrupt);
+				//Triggered opposed to rotation
+				sensors_invert_rotation();
 			}
 			break;
 		case	STATIC:
@@ -250,7 +253,7 @@ void move_round_about(float radius, int16_t speed)
 
 		s_speed_slow_wheel = 2*s_speed_previous-s_speed_fast_wheel;
 
-		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180° around his center
+		s_move_duration = 180.f*ROTATION_DURATION_FACTOR*2/(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180ï¿½ around his center
 	}
 
 	move_rotate(90.f, speed);//rotate to be tangent
