@@ -37,10 +37,15 @@
 #define IR_SAMPLE_PERIOD				200
 #define IR_N_SAMPLE_AVERAGE				5 //low-pass filter
 #define IR_TRIGGER_VALUE				40
+
 #define PROX_LEFT						5
 #define PROX_RIGHT						2
 #define PROX_RIGHT_BACK					3
 #define PROX_LEFT_BACK					4
+/*#define PROX_LEFT						3
+#define PROX_RIGHT						4
+#define PROX_RIGHT_BACK					3
+#define PROX_LEFT_BACK					4*/
 
 // enumerations
 typedef enum {
