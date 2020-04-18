@@ -177,24 +177,24 @@ void move_until_obstacle(int16_t speed)
 	}
 }
 
-void move_rotate(int8_t angle, int16_t speed)
+void move_rotate(int16_t angle, int16_t speed)
 {
 	static uint32_t s_move_duration = 0;
 	static int s_robot_speed = 0;
 
-	static int8_t s_angle_previous = 0;
+	static int16_t s_angle_previous = 0;
 	static int16_t s_speed_previous = 0;
 
 	speed = speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed;
 	speed = speed < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed;
 
-	// recompute with floats only if required
+	// recompute only if required
 	if(angle != s_angle_previous || speed != s_speed_previous)
 	{
 		s_angle_previous = angle;
 		s_speed_previous = speed;
 
-		s_move_duration = (uint32_t)abs((int32_t)angle * 1000 / speed);
+		s_move_duration = (uint32_t)abs((int32_t)1000*angle/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)/speed);
 		s_robot_speed = speed;
 
 		if(angle < 0)
@@ -247,7 +247,7 @@ void move_round_about(int16_t radius, int16_t speed)
 
 		s_speed_slow_wheel = (int16_t)((int32_t)speed*(radius)/(radius+MM2EPUCK(WHEEL_DISTANCE)));
 
-		s_move_duration = DEG2EPUCK(180)*1000*2/(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180deg around his center
+		s_move_duration = 1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180deg around his center
 	}
 
 	move_rotate(DEG2EPUCK(90), speed);//rotate to be tangent

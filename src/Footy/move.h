@@ -31,7 +31,7 @@ void move_init_threads(void);
 * @param speed				Rotation speed of right wheel in step/s
 *
 */
-void move_rotate(int8_t angle, int16_t speed);
+void move_rotate(int16_t angle, int16_t speed);
 
 /**
 * @brief   Move the robot straight until obstacle
