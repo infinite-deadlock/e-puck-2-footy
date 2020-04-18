@@ -73,8 +73,8 @@ static THD_FUNCTION(check_dynamic, arg)
 
 static void check_dynamic_triggers(bool force_update)
 {
-    struct IR_triggers previous_triggers = sensors_get_IR_triggers();
-    struct IR_triggers current_triggers;
+    static struct IR_triggers previous_triggers = sensors_get_IR_triggers();
+    static struct IR_triggers current_triggers;
 
 	current_triggers = sensors_get_IR_triggers();
 	switch(s_move_state)
