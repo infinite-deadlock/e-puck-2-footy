@@ -180,7 +180,7 @@ void move_until_obstacle(int16_t speed)
 void move_rotate(int16_t angle, int16_t speed)
 {
 	static uint32_t s_move_duration = 0;
-	static int s_robot_speed = 0;
+	static int16_t s_robot_speed = 0;
 
 	static int16_t s_angle_previous = 0;
 	static int16_t s_speed_previous = 0;
