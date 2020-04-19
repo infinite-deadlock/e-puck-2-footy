@@ -7,6 +7,7 @@
 
 int main(void) {
   int imageWidth;
+  int16_t distance;
   FILE * fp;
   fp = fopen ("gen_lookup_pixels_angles.txt","w");
 
@@ -18,10 +19,13 @@ int main(void) {
   
   for(int i = 1; i <= imageWidth/2; i++)
   {
-    fprintf(fp, "%0.f", DEG2EPUCK(atan((float)i / (imageWidth/2) * TAN_45_OVER_2_CONST) * 180.f / M_PI));
+	distance = DEG2EPUCK(atan((float)i / (imageWidth/2) * TAN_45_OVER_2_CONST) * 180.f / M_PI);
+    fprintf(fp, "%d", distance);
     if(i!=imageWidth/2)
     {
       fprintf(fp, ",\t");
+	  if(distance < 100)
+		fprintf(fp, "\t");
       if(i%10==0)
         fprintf(fp, "\n");
     }

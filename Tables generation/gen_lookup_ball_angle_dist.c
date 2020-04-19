@@ -3,9 +3,11 @@
 #include <stdint.h>
 #include "../src/Footy/constantes.h"
 
+#define EPUCK2DEG(a)				((float)(a)*ANGULAR_UNIT)
+
 int main(void) {
   FILE * fp;
-  float distance;
+  int16_t distance;
   fp = fopen ("lookup_ball_angle_dist.txt","w");
 
   //generate arcos values in tab
@@ -13,7 +15,7 @@ int main(void) {
   for(int16_t i = 0; i < N_PRECALCULATED_ANGLE_TO_DIST_VALUES; ++i)
   {
 	distance = BALL_DIAMETER/2/sin((EPUCK2DEG(MIN_HALF_ANGLE_BALL)+i*EPUCK2DEG(ANGLE_TO_DIST_ANGLE_RES))*M_PI/180);
-    fprintf(fp, "%.0f", distance);
+    fprintf(fp, "%d", distance);
     if(i!=N_PRECALCULATED_ANGLE_TO_DIST_VALUES-1)
     {
       fprintf(fp, ",\t");

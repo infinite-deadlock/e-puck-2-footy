@@ -247,7 +247,7 @@ void move_round_about(int16_t radius, int16_t speed)
 
 		s_speed_slow_wheel = (int16_t)((int32_t)speed*(radius)/(radius+MM2EPUCK(WHEEL_DISTANCE)));
 
-		s_move_duration = 1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180deg around his center
+		s_move_duration = (uint32_t)1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/abs(s_speed_fast_wheel - s_speed_slow_wheel);//Half circle -> robot must rotate of 180deg around his center
 	}
 
 	move_rotate(DEG2EPUCK(90), speed);//rotate to be tangent
