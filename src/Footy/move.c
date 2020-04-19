@@ -107,12 +107,15 @@ static void check_dynamic_triggers(bool force_update)
 static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration)
 {
 	systime_t time_start;
+	uint32_t time_moved = 0;
 	int16_t max_speed;
 	int16_t boost_factor;
 
 	//move
 	do
 	{
+		duration-=time_moved;
+
 		chMtxLock(&move_mutex_free_to_move);//wait until not blocked
 		if(s_boost_speed)
 		{
@@ -124,19 +127,15 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 		}
 		else
 			boost_factor = 10;
-		duration = duration*10/boost_factor;
 
 		left_motor_set_speed(speed_left*boost_factor/10);
 		right_motor_set_speed(speed_right*boost_factor/10);
 	    time_start = chVTGetSystemTime();
 
-		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration));//exit if dynamic control or obstacle
+		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration*10/boost_factor));//exit if dynamic control or obstacle, time reduced by boost
+		time_moved = (ST2MS(chVTGetSystemTime()-time_start)+1)*boost_factor/10;//+1 to avoid truncation errors (negligeable). Boosted time counts for more
 		chMtxUnlock(&move_mutex_free_to_move);
-
-		//update duration
-		duration-=(uint32_t)(chVTGetSystemTime()-time_start);
-		duration = duration*boost_factor/10;
-	}while(duration > 0);
+	}while(duration > time_moved);
 
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
@@ -194,7 +193,8 @@ void move_rotate(int16_t angle, int16_t speed)
 		s_angle_previous = angle;
 		s_speed_previous = speed;
 
-		s_move_duration = (uint32_t)abs((int32_t)1000*angle/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)/speed);
+		s_move_duration = (uint32_t)abs(1000*(int32_t)angle/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)/speed);
+        chprintf((BaseSequentialStream *)&SD3, "Rotation angle: %d Rotation time %d\n", angle, s_move_duration);
 		s_robot_speed = speed;
 
 		if(angle < 0)

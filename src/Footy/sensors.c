@@ -217,11 +217,7 @@ int16_t compute_angle_from_image(int16_t pos)
 	7644,	7667,	7690,	7713,	7736,	7759,	7782,	7805,	7828,	7851,
 	7874,	7897,	7920,	7943,	7965,	7988,	8011,	8034,	8057,	8079};
 
-    chprintf((BaseSequentialStream *)&SD3, "index in picture is %d", pos);
-	pos = pos < IMAGE_BUFFER_SIZE/2 ? IMAGE_BUFFER_SIZE/2-pos-1 : IMAGE_BUFFER_SIZE/2-pos;
-    chprintf((BaseSequentialStream *)&SD3, " calculated angle is %d\n", pos > 0 ? precalculated_values[abs(pos)] : -precalculated_values[abs(pos)]);
-
-	return pos > 0 ? precalculated_values[abs(pos)] : -precalculated_values[abs(pos)];
+	return pos >= IMAGE_BUFFER_SIZE/2 ? -precalculated_values[pos-IMAGE_BUFFER_SIZE/2] : precalculated_values[IMAGE_BUFFER_SIZE/2-pos-1];
 }
 
 void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)

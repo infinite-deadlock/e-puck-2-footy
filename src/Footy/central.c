@@ -114,13 +114,6 @@ void central_control_loop(void)
 		move_change_state(ROTATION);
 		while(!ball_found)
 		{
-			chBSemSignal(&central_semaphore_image_request);
-			chBSemWait(sensors_get_semaphore_authorization_move());
-
-			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
-			if(ball_found)
-				break;
-
 			if(sensors_search_clockwise())
 				move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
 			else
@@ -130,6 +123,14 @@ void central_control_loop(void)
 			// meanwhile, image process can occur
 			//chThdSleepMilliseconds(250);
 			chThdSleepMilliseconds(1100);
+
+			chBSemSignal(&central_semaphore_image_request);
+			chBSemWait(sensors_get_semaphore_authorization_move());
+
+			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
+			if(ball_found)
+				break;
+
 		}
 
 		move_rotate(ball_angle, SEARCH_SPEED);
