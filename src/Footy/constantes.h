@@ -8,16 +8,16 @@
 #define MOTOR_STEPS_PER_TURN		1000
 
 #define EPUCK_LINEAR_RES			(WHEEL_DIAMETER*M_PI/MOTOR_STEPS_PER_TURN)//~=0.1288mm -> 7764 increments in 1m -> int16_t enough
-#define MM2EPUCK(x)					(x/EPUCK_LINEAR_RES)
-#define EPUCK2MM(x)					(x*EPUCK_LINEAR_RES)
+#define MM2EPUCK(x)					((int16_t)((x)/EPUCK_LINEAR_RES))
+#define EPUCK2MM(x)					((int16_t)((x)*EPUCK_LINEAR_RES))
 #define ANGLE_TO_DIST_RES			5//in mm, wanted resolution for calculation of distance from angle on camera
 #define MAX_RADIUS_FIELD			450//in mm
 //#define ANGLE_TO_DIST_ANGLE_RES	(int16_t)DEG2EPUCK((asin(BALL_DIAMETER/2/(MAX_RADIUS_FIELD-ANGLE_TO_DIST_RES))-asin(BALL_DIAMETER/2/MAX_RADIUS_FIELD))/M_PI*180);//needed angle for resolution at minimum sensibility
 #define ANGLE_TO_DIST_ANGLE_RES		9//in epuck angle unit
 #define EPUCK_ANGULAR_RES			(EPUCK_LINEAR_RES*2/WHEEL_DISTANCE*180/M_PI)//~=0.27849°
 #define ANGULAR_UNIT				(EPUCK_ANGULAR_RES/100)//more precise than motors for calculations -> ~16'159 increments in 45° -> int16_t
-#define DEG2EPUCK(a)				(a/ANGULAR_UNIT)
-#define EPUCK2DEG(a)				(a*ANGULAR_UNIT)
+#define DEG2EPUCK(a)				((int16_t)((a)/ANGULAR_UNIT))
+#define EPUCK2DEG(a)				((int16_t)((a)*ANGULAR_UNIT))
 
 #define BALL_DIAMETER				MM2EPUCK(37)			// ball diameter, in mm
 #define ROTATION_MARGIN				MM2EPUCK(20)			// distance from ball when rotating around, in mm

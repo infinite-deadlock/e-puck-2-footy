@@ -184,7 +184,7 @@ int16_t compute_angle_from_image(int16_t pos)
 {
 	//fprintf(fp, "%0.f", DEG2EPUCK(atan((float)(IMAGE_BUFFER_SIZE/2 - pos) / (imageWidth/2) * TAN_45_OVER_2_CONST) * 180.f / M_PI));
 	static const int16_t precalculated_values[IMAGE_BUFFER_SIZE/2] =
-	{27,	53,	80,	107,	133,	160,	186,	213,	240,	266,
+	{27,	53,		80,		107,	133,	160,	186,	213,	240,	266,
 	293,	320,	346,	373,	399,	426,	453,	479,	506,	532,
 	559,	586,	612,	639,	666,	692,	719,	745,	772,	799,
 	825,	852,	878,	905,	931,	958,	985,	1011,	1038,	1064,
@@ -217,9 +217,9 @@ int16_t compute_angle_from_image(int16_t pos)
 	7644,	7667,	7690,	7713,	7736,	7759,	7782,	7805,	7828,	7851,
 	7874,	7897,	7920,	7943,	7965,	7988,	8011,	8034,	8057,	8079};
 
-	pos = IMAGE_BUFFER_SIZE/2 - pos;
+	pos = pos < IMAGE_BUFFER_SIZE/2 ? IMAGE_BUFFER_SIZE/2-pos-1 : IMAGE_BUFFER_SIZE/2-pos;
 
-	return pos > 0 ? precalculated_values[pos] : -precalculated_values[pos];
+	return pos > 0 ? precalculated_values[abs(pos)] : -precalculated_values[abs(pos)];
 }
 
 void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)

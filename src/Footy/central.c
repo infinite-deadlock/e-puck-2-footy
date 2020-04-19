@@ -1,5 +1,9 @@
 #include "central.h"
 
+//  Standard Library
+#include <stdlib.h>			// standard library
+#include <math.h>
+
 // ChibiOS & others
 #include "ch.h"					// main include files
 #include <chprintf.h>			// mini printf-like functionality
@@ -84,7 +88,7 @@ static int16_t compute_distance(int16_t ball_seen_half_angle)
 	467,	467,	466};
 
 	//fit to array
-	ball_seen_half_angle = ball_seen_half_angle < 0 ? -ball_seen_half_angle : ball_seen_half_angle;
+	ball_seen_half_angle = abs(ball_seen_half_angle);
 	ball_seen_half_angle = ball_seen_half_angle > MAX_HALF_ANGLE_BALL ? MAX_HALF_ANGLE_BALL : ball_seen_half_angle;
 	ball_seen_half_angle = ball_seen_half_angle < MIN_HALF_ANGLE_BALL ? MIN_HALF_ANGLE_BALL : ball_seen_half_angle;
 
@@ -132,7 +136,7 @@ void central_control_loop(void)
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
-        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", EPUCK2MM(compute_distance(ball_seen_half_angle)));
+        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", EPUCK2MM((float)compute_distance(ball_seen_half_angle)));
 		ball_distance = compute_distance(ball_seen_half_angle);
 
 		//fetch the ball
