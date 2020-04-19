@@ -1,25 +1,31 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
+#include "../src/Footy/constantes.h"
+
+#define TAN_45_OVER_2_CONST             0.4142135679721832275390625f // in rad, fit for float
 
 int main(void) {
-  int imageWidth, fullRevolution;
+  int imageWidth;
+  int16_t distance;
   FILE * fp;
   fp = fopen ("gen_lookup_pixels_angles.txt","w");
 
   printf("Largeur de l'image en pixel\n");
   scanf("%d", &imageWidth);
-  printf("Nombre de divisions dans un tour\n");
-  scanf("%d", &fullRevolution);
 
   //generate arcos values in tab
   fprintf(fp, "{");
-  int i = 1;
-  for(; i <= imageWidth/2; i++)
+  
+  for(int i = 1; i <= imageWidth/2; i++)
   {
-    fprintf(fp, "%.0f", atan(tan((M_PI/8))*2*i/imageWidth)*fullRevolution/2/M_PI);
+	distance = DEG2EPUCK(atan((float)i / (imageWidth/2) * TAN_45_OVER_2_CONST) * 180.f / M_PI);
+    fprintf(fp, "%d", distance);
     if(i!=imageWidth/2)
     {
       fprintf(fp, ",\t");
+	  if(distance < 100)
+		fprintf(fp, "\t");
       if(i%10==0)
         fprintf(fp, "\n");
     }

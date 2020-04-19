@@ -1,31 +1,27 @@
 #include <stdio.h>
 #include <math.h>
+#include <stdint.h>
+#include "../src/Footy/constantes.h"
+
+#define EPUCK2DEG(a)				((float)(a)*ANGULAR_UNIT)
 
 int main(void) {
-  float distUnit, ballRadius, fullAngle, angleStep, nDivision;
   FILE * fp;
+  int16_t distance;
   fp = fopen ("lookup_ball_angle_dist.txt","w");
-
-  printf("Unite de distance en mm\n");
-  scanf("%f", &distUnit);
-  printf("Rayon de la balle en mm\n");
-  scanf("%f", &ballRadius);
-  printf("Nombre d'unite d'angle dans une revolution\n");
-  scanf("%f", &fullAngle);
-  printf("Incrément d'angle par division (unite du programme)\n");
-  scanf("%f", &angleStep);
-  printf("Nombre de division\n");
-  scanf("%f", &nDivision);
 
   //generate arcos values in tab
   fprintf(fp, "{");
-  for(int i = 1; i <= nDivision; i++)
+  for(int16_t i = 0; i < N_PRECALCULATED_ANGLE_TO_DIST_VALUES; ++i)
   {
-    fprintf(fp, "%.0f", ballRadius/sin(i*angleStep/fullAngle*2*M_PI)/distUnit);
-    if(i!=nDivision)
+	distance = BALL_DIAMETER/2/sin((EPUCK2DEG(MIN_HALF_ANGLE_BALL)+i*EPUCK2DEG(ANGLE_TO_DIST_ANGLE_RES))*M_PI/180);
+    fprintf(fp, "%d", distance);
+    if(i!=N_PRECALCULATED_ANGLE_TO_DIST_VALUES-1)
     {
       fprintf(fp, ",\t");
-      if(i%10==0)
+	  if(distance < 100.f)
+		fprintf(fp, ",\t");
+      if(i%10==9)
         fprintf(fp, "\n");
     }
     else
