@@ -5,8 +5,11 @@
 extern "C" {
 #endif
 
+/**
+* @brief   Main function of the program, search and retrieve a ball in a loop
+*
+*/
 void central_control_loop(void);
-void * central_get_semaphore_authorization_acquire(void);
 
 #ifdef __cplusplus
 }

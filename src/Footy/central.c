@@ -2,22 +2,72 @@
 
 //  Standard Library
 #include <stdlib.h>			// standard library
-#include <math.h>
-
-// ChibiOS & others
-#include "ch.h"					// main include files
-#include <chprintf.h>			// mini printf-like functionality
 
 // this project files
+#include "constantes.h"
+#include "debug.h"
 #include "move.h"
 #include "sensors.h"
-#include "constantes.h"
 
 // local defines
-#define SEARCH_SPEED	MOTOR_SPEED_LIMIT / 2
+#define DEFAULT_SPEED	MOTOR_SPEED_LIMIT / 2
 
-// semaphores
-static BSEMAPHORE_DECL(central_semaphore_image_request, TRUE);
+// local functions prototypes
+
+static int16_t compute_distance(int16_t ball_seen_half_angle);
+
+// functions
+
+void central_control_loop(void)
+{
+	int16_t ball_angle = 0;
+	int16_t ball_seen_half_angle = 0;
+	int16_t ball_distance;
+	bool ball_found;
+
+	while(1)
+	{
+		chThdSleepMilliseconds(5000);
+
+		ball_found = false;
+		sensors_set_ball_to_be_search();
+		move_change_state(ROTATION);
+
+		do
+		{
+			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
+			// meanwhile, image process can occur
+			//chThdSleepMilliseconds(250);
+			chThdSleepMilliseconds(1100);
+
+			sensors_capture_and_search();
+			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
+
+			if(!ball_found)
+			{
+				if(sensors_search_clockwise())
+					move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, DEFAULT_SPEED);
+				else
+					move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, DEFAULT_SPEED);
+			}
+		}while(!ball_found);
+
+		move_rotate(ball_angle, DEFAULT_SPEED);
+		move_change_state(TRANSLATION);
+		chThdSleepMilliseconds(1000);
+
+        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d epuck units\n", compute_distance(ball_seen_half_angle));
+		ball_distance = compute_distance(ball_seen_half_angle);
+
+		//retrieve the ball
+		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
+		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
+		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
+		move_change_state(STATIC);
+	}
+}
+
+// local functions
 
 static int16_t compute_distance(int16_t ball_seen_half_angle)
 {
@@ -90,59 +140,4 @@ static int16_t compute_distance(int16_t ball_seen_half_angle)
 	ball_seen_half_angle /= ANGLE_TO_DIST_ANGLE_RES;
 
 	return	precalculated_values[ball_seen_half_angle];
-}
-
-void central_control_loop(void)
-{
-	int16_t ball_angle = 0;
-	int16_t ball_seen_half_angle = 0;
-	int16_t ball_distance = 0;
-	bool ball_found = false;
-
-	while(1)
-	{
-		chThdSleepMilliseconds(5000);
-
-		ball_found = false;
-		sensors_set_ball_to_be_search();
-		move_change_state(ROTATION);
-		while(!ball_found)
-		{
-			if(sensors_search_clockwise())
-				move_rotate(-EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
-			else
-				move_rotate(EPUCK_SEARCH_ROTATION_ANGLE, SEARCH_SPEED);
-
-			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
-			// meanwhile, image process can occur
-			//chThdSleepMilliseconds(250);
-			chThdSleepMilliseconds(1100);
-
-			chBSemSignal(&central_semaphore_image_request);
-			chBSemWait(sensors_get_semaphore_authorization_move());
-
-			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
-			if(ball_found)
-				break;
-
-		}
-
-		move_rotate(ball_angle, SEARCH_SPEED);
-		move_change_state(TRANSLATION);
-		chThdSleepMilliseconds(1000);
-
-        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d mm\n", compute_distance(ball_seen_half_angle));
-		ball_distance = compute_distance(ball_seen_half_angle);
-
-		//fetch the ball
-		move_straight(ball_distance-ROTATION_RADIUS, SEARCH_SPEED);
-		move_round_about(ROTATION_RADIUS, SEARCH_SPEED);
-		move_straight(ball_distance+ROTATION_RADIUS, SEARCH_SPEED);
-		move_change_state(STATIC);
-	}
-}
-
-void * central_get_semaphore_authorization_acquire(void)
-{
-	return &central_semaphore_image_request;
 }
