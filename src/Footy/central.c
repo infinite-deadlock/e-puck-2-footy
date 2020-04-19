@@ -136,7 +136,7 @@ void central_control_loop(void)
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
-        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %f mm\n", EPUCK2MM((float)compute_distance(ball_seen_half_angle)));
+        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d mm\n", EPUCK2MM((float)compute_distance(ball_seen_half_angle)));
 		ball_distance = compute_distance(ball_seen_half_angle);
 
 		//fetch the ball

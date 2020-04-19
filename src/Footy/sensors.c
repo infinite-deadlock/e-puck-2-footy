@@ -248,8 +248,8 @@ void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
 					sensors_ball_angle = (compute_angle_from_image(i) + last_fall_angle)/2;
 					sensors_ball_seen_half_angle = last_fall_angle-sensors_ball_angle;
 
-                    chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %f and %f\n", last_fall_angle, compute_angle_from_image(i));
-                    chprintf((BaseSequentialStream *)&SD3, "angle is %f\n", sensors_ball_angle);
+                    chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %d and %d\n", last_fall_angle, compute_angle_from_image(i));
+                    chprintf((BaseSequentialStream *)&SD3, "angle is %d\n", sensors_ball_angle);
                 }
             }
         }
