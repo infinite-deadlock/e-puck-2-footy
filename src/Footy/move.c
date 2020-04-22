@@ -5,7 +5,7 @@
 #include "debug.h"
 #include "sensors.h"
 
-#define BOOST_FACTOR		2
+#define BOOST_FACTOR			2
 
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
@@ -40,23 +40,23 @@ static THD_FUNCTION(check_dynamic, arg)
 
     while(1)
     {
-    	//manual control
-    	check_dynamic_triggers(false);//update only if there is a change
+    	// manual control
+    	check_dynamic_triggers(false);	// update only if there is a change
 
-    	//obstacle
-    	if(!stopped && !sensors_can_move())//stops moving
+    	// obstacle
+    	if(!stopped && !sensors_can_move())	// stops moving
     	{
-    		//interrupts current move if any, else not effects
+    		// interrupts current move if any, else not effects
     		chBSemSignal(&move_semaphore_interrupt);
     		left_motor_set_speed(0);
     		right_motor_set_speed(0);
-    		chMtxLock(&move_mutex_free_to_move);//prevents any move
+    		chMtxLock(&move_mutex_free_to_move);	// prevents any move
 
     		stopped = true;
     	}
     	if(stopped && sensors_can_move())
     	{
-    		chMtxUnlock(&move_mutex_free_to_move);//resume moves
+    		chMtxUnlock(&move_mutex_free_to_move);	// resume moves
 
     		stopped = false;
     	}
@@ -64,8 +64,7 @@ static THD_FUNCTION(check_dynamic, arg)
     }
 }
 
-// functions
-
+// function definitions
 void move_init_threads(void)
 {
 	chThdCreateStatic(wa_check_dynamic, sizeof(wa_check_dynamic), NORMALPRIO, check_dynamic, NULL);
@@ -79,20 +78,20 @@ void move_change_state(Move_state new_state)
 
 void move_straight(int16_t distance, int16_t speed)
 {
-	//fits speed to motors limitations
-	speed = speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed;
+	// fit speed to motors limitations
+	speed = speed >  MOTOR_SPEED_LIMIT ?  MOTOR_SPEED_LIMIT : speed;
 	speed = speed < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed;
 
 	if(distance < 0.f)
-		speed*=-1;
+		speed *= -1;
 
 	make_move(speed, speed, (uint32_t)abs((int32_t)distance * 1000 / speed));
 }
 
 void move_rotate(int16_t angle, int16_t speed)
 {
-	//fits speed to motors limitations
-	speed = speed > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed;
+	// fits speed to motors limitations
+	speed = speed >  MOTOR_SPEED_LIMIT ?  MOTOR_SPEED_LIMIT : speed;
 	speed = speed < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed;
 
 	if(angle < 0)
@@ -104,22 +103,22 @@ void move_rotate(int16_t angle, int16_t speed)
 
 void move_round_about(int16_t radius, int16_t speed)
 {
-	static int16_t speed_fast_wheel = 0;//rotation clockwise so left wheel turns faster in a circle
+	static int16_t speed_fast_wheel = 0;	// rotation clockwise so left wheel turns faster in a circle
 	static int16_t speed_slow_wheel = 0;
 	static uint32_t duration = 0;
 
-	//fits speed to motors limitations
+	// fits speed to motors limitations
 	speed_fast_wheel = (int16_t)((int32_t)speed*(radius+MM2EPUCK(WHEEL_DISTANCE))/(radius+MM2EPUCK(WHEEL_DISTANCE)/2));
-	speed_fast_wheel = speed_fast_wheel > MOTOR_SPEED_LIMIT ? MOTOR_SPEED_LIMIT : speed_fast_wheel;
+	speed_fast_wheel = speed_fast_wheel >  MOTOR_SPEED_LIMIT ?  MOTOR_SPEED_LIMIT : speed_fast_wheel;
 	speed_fast_wheel = speed_fast_wheel < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed_fast_wheel;
 
 	speed_slow_wheel = (int16_t)((int32_t)speed*(radius)/(radius+MM2EPUCK(WHEEL_DISTANCE)));
 
-	duration = (uint32_t)1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/abs(speed_fast_wheel - speed_slow_wheel);//Half circle -> robot must rotate of 180deg around his center
+	duration = (uint32_t)1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/abs(speed_fast_wheel - speed_slow_wheel);	// half circle -> robot must rotate of 180deg around his center
 
-	move_rotate(DEG2EPUCK(90), speed);//rotate to be tangent
-	make_move(speed_fast_wheel, speed_slow_wheel, duration);//half circle
-	move_rotate(DEG2EPUCK(-90), speed);//face center
+	move_rotate(DEG2EPUCK(90), speed);							// rotate to be tangent
+	make_move(speed_fast_wheel, speed_slow_wheel, duration);	// half circle
+	move_rotate(DEG2EPUCK(-90), speed);							// face center
 }
 
 // local functions
@@ -140,15 +139,16 @@ static void check_dynamic_triggers(bool force_update)
 			}
 			break;
 		case	ROTATION:
-			if(force_update || (s_clockwise && current_triggers.left_triggered != previous_triggers.left_triggered) || (!s_clockwise && current_triggers.right_triggered != previous_triggers.right_triggered))
+			if(force_update || ( s_clockwise && current_triggers.left_triggered  != previous_triggers.left_triggered)
+							|| (!s_clockwise && current_triggers.right_triggered != previous_triggers.right_triggered))
 			{
-				//Triggered in same direction as rotation
+				// triggered in same direction as rotation
 				s_boost_speed = (s_clockwise && current_triggers.left_triggered) || (!s_clockwise && current_triggers.right_triggered);
 				chBSemSignal(&move_semaphore_interrupt);
 			}
 			else if((s_clockwise && current_triggers.right_triggered) || (!s_clockwise && current_triggers.left_triggered))
 			{
-				//Triggered in opposite direction of rotation
+				// triggered in opposite direction of rotation
 				sensors_invert_rotation();
 			}
 			break;
@@ -168,18 +168,18 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 	int16_t max_speed;
 	int16_t boost_factor;
 
-	//move
+	// move
 	do
 	{
-		duration-=time_moved;
+		duration -= time_moved;
 
-		chMtxLock(&move_mutex_free_to_move);//wait until not blocked
+		chMtxLock(&move_mutex_free_to_move); // wait until not blocked
 		if(s_boost_speed)
 		{
-			//calculate boost_factor
+			// calculate boost_factor
 			max_speed = abs(abs(speed_left) > abs(speed_right) ? speed_left : speed_right);
-			boost_factor = max_speed*BOOST_FACTOR*10;//factor 10 to avoid decimals
-			boost_factor = max_speed > MOTOR_SPEED_LIMIT*10 ? MOTOR_SPEED_LIMIT*10 : boost_factor;
+			boost_factor = max_speed * BOOST_FACTOR * 10;	// factor 10 to avoid decimals
+			boost_factor = max_speed > MOTOR_SPEED_LIMIT * 10 ? MOTOR_SPEED_LIMIT * 10 : boost_factor;
 			boost_factor /= max_speed;
 		}
 		else
@@ -189,10 +189,10 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 		right_motor_set_speed(speed_right*boost_factor/10);
 	    time_start = chVTGetSystemTime();
 
-		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration*10/boost_factor));//exit if dynamic control or obstacle interruption - time reduced by boost
-		time_moved = (ST2MS(chVTGetSystemTime()-time_start)+1)*boost_factor/10;//+1 to avoid truncation errors (negligeable). Boosted time counts for more
+		chBSemWaitTimeout(&move_semaphore_interrupt, MS2ST(duration * 10 / boost_factor));	// exit if dynamic control or obstacle interruption - time reduced by boost
+		time_moved = (ST2MS(chVTGetSystemTime() - time_start)+1) * boost_factor / 10;		// +1 to avoid truncation errors (negligeable). Boosted time counts for more
 		chMtxUnlock(&move_mutex_free_to_move);
-	}while(duration > time_moved);//while move not finished
+	}while(duration > time_moved);	// while move not finished
 
 	//end move
 	left_motor_set_speed(0);

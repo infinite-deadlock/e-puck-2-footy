@@ -14,8 +14,8 @@ extern "C" {
 
 typedef enum{
 	STATIC = 0,
-	TRANSLATION,//Accelerated if back triggered
-	ROTATION//Accelerated if triggered in same direction of movement. Rotation inversion if triggered in opposite direction
+	TRANSLATION,	// accelerated if back triggered
+	ROTATION		// accelerated if triggered in same direction of movement. Rotation inversion if triggered in opposite direction
 }Move_state;
 
 // Move functions

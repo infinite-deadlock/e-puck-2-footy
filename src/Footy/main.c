@@ -34,19 +34,19 @@ static void serial_start(void)
 
 int main(void)
 {
-	halInit();			// Hardware Abstraction Layer subsystem init
-	chSysInit();		// Initializes the kernel
-	mpu_init();			// Initializes Memory Protection Unit
+	halInit();				// Hardware Abstraction Layer subsystem init
+	chSysInit();			// Initializes the kernel
+	mpu_init();				// Initializes Memory Protection Unit
 
-	serial_start();		// serial communications starting
-	usb_start();		// Universal Serial Bus communications starting
-	dcmi_start();		// Digital CaMera Interface starting
-	po8030_start();		// camera clock generation starting (PixelPlus PO8030)
-	motors_init();		// motors starting
+	serial_start();			// serial communications starting
+	usb_start();			// Universal Serial Bus communications starting
+	dcmi_start();			// Digital CaMera Interface starting
+	po8030_start();			// camera clock generation starting (PixelPlus PO8030)
+	motors_init();			// motors starting
 
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
-	sensors_start();	// start all sensors for this project
-	move_init_threads(); //start obstacle detection
+	sensors_start();		// start all sensors for this project
+	move_init_threads();	// start obstacle detection
 
 	central_control_loop();
 }

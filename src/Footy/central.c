@@ -37,7 +37,7 @@ void central_control_loop(void)
 		{
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
-			//chThdSleepMilliseconds(250);
+			// chThdSleepMilliseconds(250);
 			chThdSleepMilliseconds(1100);
 
 			sensors_capture_and_search();
@@ -59,7 +59,7 @@ void central_control_loop(void)
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d epuck units\n", compute_distance(ball_seen_half_angle));
 		ball_distance = compute_distance(ball_seen_half_angle);
 
-		//retrieve the ball
+		// retrieve the ball
 		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
 		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
 		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
@@ -131,7 +131,7 @@ static int16_t compute_distance(int16_t ball_seen_half_angle)
 	471,	470,	470,	469,	468,	467,	467,	466,	465,	465,
 	464,	463};
 
-	//fit to array
+	// fit to array
 	ball_seen_half_angle = abs(ball_seen_half_angle);
 	ball_seen_half_angle = ball_seen_half_angle > MAX_HALF_ANGLE_BALL ? MAX_HALF_ANGLE_BALL : ball_seen_half_angle;
 	ball_seen_half_angle = ball_seen_half_angle < MIN_HALF_ANGLE_BALL ? MIN_HALF_ANGLE_BALL : ball_seen_half_angle;
