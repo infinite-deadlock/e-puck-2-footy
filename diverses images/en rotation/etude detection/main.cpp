@@ -84,6 +84,52 @@ uint8_t extract_blue(uint16_t pattern)
     return pattern & 31;
 }
 
+void convert_rgb_to_hsv(double & h, double & s, double & v, uint8_t r_int, uint8_t g_int, uint8_t b_int)
+{
+    double min, max, delta;
+    double r(r_int), g(g_int), b(b_int);
+    r /= 31.;
+    g /= 63.;
+    b /= 31.;
+
+    min = r < g ? r: g;
+    min = min < b ? min: b;
+
+    max = r > g ? r: g;
+    max = max > b ? max: b;
+
+    v = max;
+    delta = max - min;
+
+    if(delta < 0.00001)
+    {
+        s = 0;
+        h = 0;
+        return;
+    }
+    if(max > 0.0)
+        s = delta / max;
+    else
+    {
+        s = 0.0;
+        h = NAN;
+        return;
+    }
+    if(r >= max)
+        h = (g - b) / delta;
+    else if(g >= max)
+        h = 2.0 + (b - r) / delta;
+    else
+        h = 4.0 + (r - g) / delta;
+
+    h *= 60.0;
+
+    if(h < 0.0)
+        h += 360.0;
+
+    h /= 360;
+}
+
 void export_tab_images_to_csv(vector<vector<uint16_t>> tab_images)
 {
     unsigned int img_size = tab_images[0].size();
@@ -99,17 +145,28 @@ void export_tab_images_to_csv(vector<vector<uint16_t>> tab_images)
 
     file << ",";
     for(size_t j = 0 ; j < tab_images.size() ; ++j)
-        file << "Pattern,Red,Green,Blue,";
+        file << "Pattern,Red,Green,Blue,Hue,Saturation,Value,";
     file << endl;
 
     for(unsigned int i = 0 ; i < img_size ; ++i)
     {
         file << i << ",";
         for(size_t j = 0 ; j < tab_images.size() ; ++j)
+        {
+            uint8_t r = extract_red(tab_images[j][i]);
+            uint8_t g = extract_green(tab_images[j][i]);
+            uint8_t b = extract_blue(tab_images[j][i]);
+            double h, s, v;
+            convert_rgb_to_hsv(h, s, v, r, g, b);
             file << tab_images[j][i] << ","
-                << to_string(extract_red(tab_images[j][i])) << ","
-                << to_string(extract_green(tab_images[j][i])) << ","
-                << to_string(extract_blue(tab_images[j][i])) << ",";
+                << to_string(r) << ","
+                << to_string(g) << ","
+                << to_string(b) << ","
+                << to_string(h) << ","
+                << to_string(s) << ","
+                << to_string(v) << ",";
+        }
+
         file << endl;
     }
 
@@ -179,7 +236,7 @@ int main()
     vector<vector<uint16_t>> tab_images = extract_tab_images("balle_rouge_en_face_fond_blanc.txt");
     export_tab_images_to_csv(tab_images);
 
-    launch_detection_in_image(tab_images[0]);
+    //launch_detection_in_image(tab_images[0]);
 
     return 0;
 }
