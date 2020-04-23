@@ -10,7 +10,7 @@
 #include "sensors.h"
 
 // local defines
-#define DEFAULT_SPEED	MOTOR_SPEED_LIMIT / 2
+#define DEFAULT_SPEED	MOTOR_SPEED_LIMIT / 4
 
 // local functions prototypes
 
@@ -62,9 +62,7 @@ void central_control_loop(void)
 
 		// retrieve the ball
 		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
-		move_change_state(STATIC);
 		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
-		move_change_state(TRANSLATION);
 		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
 		move_change_state(STATIC);
 	}
