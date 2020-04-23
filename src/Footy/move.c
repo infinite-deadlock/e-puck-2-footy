@@ -112,9 +112,11 @@ void move_round_about(int16_t radius, int16_t speed)
 	speed_fast_wheel = speed_fast_wheel >  MOTOR_SPEED_LIMIT ?  MOTOR_SPEED_LIMIT : speed_fast_wheel;
 	speed_fast_wheel = speed_fast_wheel < -MOTOR_SPEED_LIMIT ? -MOTOR_SPEED_LIMIT : speed_fast_wheel;
 
-	speed_slow_wheel = (int16_t)((int32_t)speed*(radius)/(radius+MM2EPUCK(WHEEL_DISTANCE)));
+	speed_slow_wheel = (int16_t)((int32_t)speed_fast_wheel*(radius)/(radius+MM2EPUCK(WHEEL_DISTANCE)));
 
 	duration = (uint32_t)1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/abs(speed_fast_wheel - speed_slow_wheel);	// half circle -> robot must rotate of 180deg around his center
+
+	//chprintf((BaseSequentialStream *)&SD3, "speed_fast_wheel, speed_slow_wheel, speed: %d %d %d\n", speed_fast_wheel, speed_slow_wheel, speed);
 
 	move_rotate(DEG2EPUCK(90), speed);							// rotate to be tangent
 	make_move(speed_fast_wheel, speed_slow_wheel, duration);	// half circle

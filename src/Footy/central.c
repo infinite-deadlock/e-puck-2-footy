@@ -37,8 +37,8 @@ void central_control_loop(void)
 		{
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
 			// meanwhile, image process can occur
-			// chThdSleepMilliseconds(250);
-			chThdSleepMilliseconds(1100);
+			 chThdSleepMilliseconds(250);
+			//chThdSleepMilliseconds(1100);
 
 			sensors_capture_and_search();
 			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
@@ -52,10 +52,8 @@ void central_control_loop(void)
 			}
 		}while(!ball_found);
 
-		if(sensors_search_clockwise())
-			move_rotate(ball_angle, DEFAULT_SPEED);
-		else
-			move_rotate(-ball_angle, DEFAULT_SPEED);
+		move_rotate(ball_angle, DEFAULT_SPEED);
+
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
