@@ -52,7 +52,10 @@ void central_control_loop(void)
 			}
 		}while(!ball_found);
 
-		move_rotate(ball_angle, DEFAULT_SPEED);
+		if(sensors_search_clockwise())
+			move_rotate(ball_angle, DEFAULT_SPEED);
+		else
+			move_rotate(-ball_angle, DEFAULT_SPEED);
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
