@@ -62,7 +62,9 @@ void central_control_loop(void)
 
 		// retrieve the ball
 		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
+		move_change_state(STATIC);
 		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
+		move_change_state(TRANSLATION);
 		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
 		move_change_state(STATIC);
 	}
