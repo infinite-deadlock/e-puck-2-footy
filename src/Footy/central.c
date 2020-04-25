@@ -25,7 +25,7 @@ void central_control_loop(void)
 	int16_t ball_distance;
 	bool ball_found;
 
-	while(1)
+	/*while(1)
 	{
 		chThdSleepMilliseconds(5000);
 
@@ -65,6 +65,16 @@ void central_control_loop(void)
 		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
 		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
 		move_change_state(STATIC);
+	}
+	*/
+	while(1)
+	{
+		chThdSleepMilliseconds(7000);
+		sensors_set_ball_to_be_search();
+		sensors_capture_and_search();
+		ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
+		if(ball_found)
+			chprintf((BaseSequentialStream *)&SD3, "ball ball found\n");
 	}
 }
 

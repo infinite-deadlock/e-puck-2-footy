@@ -151,7 +151,7 @@ struct IR_triggers sensors_get_IR_triggers(void)
 bool sensors_can_move(void)
 {
 	// doesn't detect the ball because tof captor not horizontal
-	debug_send_uint32_to_computer(VL53L0X_get_dist_mm());
+	// debug_send_uint32_to_computer(VL53L0X_get_dist_mm());
 
 	return VL53L0X_get_dist_mm() > MOVE_SECURITY_SPACE;	// VL53L0X is now an opaque type outside this module.
 }
@@ -224,7 +224,7 @@ static void analyze_image(void)
 
 
 	// debug_send_uint8_array_to_computer(green_pixels, IMAGE_BUFFER_SIZE);
-	// debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
+	debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
 }
 
 static void detection_in_image(uint8_t * green_pixels, uint8_t * red_pixels)
