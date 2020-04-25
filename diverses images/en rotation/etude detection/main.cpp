@@ -5017,7 +5017,7 @@ void launch_detection_in_image(vector<uint16_t> & image)
 
 int main()
 {
-    vector<vector<uint16_t>> tab_images = extract_tab_images("balle_rouge_en_face_fond_vert.txt");
+    vector<vector<uint16_t>> tab_images = extract_tab_images("coin ombre en blanc lumiere soiree.txt");
     export_tab_images_to_csv(tab_images);
 
     launch_detection_in_image(tab_images[0]);

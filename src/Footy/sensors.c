@@ -4958,12 +4958,21 @@ static void detection_in_image(uint8_t * red_pixels, uint8_t * green_pixels, uin
         }
     }*/
 
+	// for debug
+	static uint8_t ball_presence_array[IMAGE_BUFFER_SIZE] = {0};
+
+
+
     bool last_fall_found = false;
 	int16_t last_fall_angle;
 
 	uint16_t continuity_start;
 	for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE ; ++i)
 	{
+		if(check_ball_presence_with_lookup(red_pixels[i], green_pixels[i], blue_pixels[i]))
+			ball_presence_array[i] = 255;
+		else
+			ball_presence_array[i] = 0;
 		if(check_ball_presence_with_lookup(red_pixels[i], green_pixels[i], blue_pixels[i]))
 		{
 			if(!last_fall_found)
@@ -4989,6 +4998,8 @@ static void detection_in_image(uint8_t * red_pixels, uint8_t * green_pixels, uin
 			last_fall_found = false;
 		}
 	}
+
+	debug_send_uint8_array_to_computer(ball_presence_array, IMAGE_BUFFER_SIZE);
 
     if(sensors_ball_found && s_sensors_clockwise_search)
     	sensors_ball_angle*=-1;
