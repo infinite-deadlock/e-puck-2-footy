@@ -4919,7 +4919,6 @@ static bool check_ball_presence_with_lookup(uint8_t r, uint8_t g, uint8_t b)
 	false, false, false, false, false, false, false, false, false, false, false, false, false, false,
 	false};
 
-
     return lookup_check_ball_presence[(r << 11) | (g << 5) | b];
 }
 
@@ -5004,7 +5003,7 @@ static void detection_in_image(uint8_t * red_pixels, uint8_t * green_pixels, uin
 
 	//debug_send_uint8_array_to_computer(ball_presence_array, IMAGE_BUFFER_SIZE);
 
-    if(sensors_ball_found && s_sensors_clockwise_search)
+    if(sensors_ball_found && !s_sensors_clockwise_search)
     	sensors_ball_angle *= -1;
 
     // invert next detection
