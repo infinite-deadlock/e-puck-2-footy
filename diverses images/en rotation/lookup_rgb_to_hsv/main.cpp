@@ -58,36 +58,39 @@ bool check_ball_presence(uint8_t r, uint8_t g, uint8_t b)
     return (s > 0.5 && (h < 0.1 || h > 0.9));
 }
 
-#define NB_COLORS 0xFFFF
+//#define NB_COLORS 0xFFFF
+#define MAX_VALUE_CASE          8
+#define MASK_LOOKUP_CASE_LENGTH 3
+#define NB_LOOKUP_PRESENCE_CASE (0xFFFF >> MASK_LOOKUP_CASE_LENGTH)
 
 int main()
 {
-    static bool lookup_check_ball_presence[NB_COLORS];
-    for(unsigned int i = 0 ; i < NB_COLORS ; i++)
+    static uint8_t lookup_check_ball_presence[NB_LOOKUP_PRESENCE_CASE];
+    for(unsigned int i = 0 ; i < NB_LOOKUP_PRESENCE_CASE ; i++)
     {
-        uint8_t r, g, b;
-        r = (i >> 11) & 31;
-        g = (i >> 5) & 63;
-        b = i & 31;
+        lookup_check_ball_presence[i] = 0;
+        for(unsigned int j = 0 ; j < MAX_VALUE_CASE ; ++j)
+        {
+            uint16_t tmp = (i << MASK_LOOKUP_CASE_LENGTH) | j;
+            uint8_t r, g, b;
+            r = (tmp >> 11) & 31;
+            g = (tmp >> 5) & 63;
+            b = tmp & 31;
 
-        lookup_check_ball_presence[i] = check_ball_presence(r, g, b);
-
-        //cout << "r: " << (int)r << " g: " << (int)g << " b: " << (int)b << " presence: " << lookup_check_ball_presence[i] << endl;
+            lookup_check_ball_presence[i] |= check_ball_presence(r, g, b) << j;
+        }
     }
 
     ofstream file("out_code.txt");
-    file << "static const bool lookup_check_ball_presence[NB_COLORS] = {" << endl;
+    file << "static const uint8_t lookup_check_ball_presence[NB_LOOKUP_PRESENCE_CASE] = {" << endl;
 
     int element_per_line = 0;
-    for(unsigned int i = 0 ; i < NB_COLORS ; ++i)
+    for(unsigned int i = 0 ; i < NB_LOOKUP_PRESENCE_CASE ; ++i)
     {
-        if(lookup_check_ball_presence[i])
-            file << "true";
-        else
-            file << "false";
+        file << (int)lookup_check_ball_presence[i];
 
         ++element_per_line;
-        if(i < NB_COLORS - 1)
+        if(i < NB_LOOKUP_PRESENCE_CASE - 1)
         {
             if(element_per_line > 13)
             {
