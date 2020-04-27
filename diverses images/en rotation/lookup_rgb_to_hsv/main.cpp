@@ -87,6 +87,10 @@ int main()
     int element_per_line = 0;
     for(unsigned int i = 0 ; i < NB_LOOKUP_PRESENCE_CASE ; ++i)
     {
+        if(lookup_check_ball_presence[i] < 10)
+            file << " ";
+        if(lookup_check_ball_presence[i] < 100)
+            file << " ";
         file << (int)lookup_check_ball_presence[i];
 
         ++element_per_line;
