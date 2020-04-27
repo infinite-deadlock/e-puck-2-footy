@@ -817,15 +817,7 @@ static void analyze_image(void)
     	pixels[j] = (((uint16_t)img_raw_RGB565_pixels[i]) << 8)| img_raw_RGB565_pixels[i + 1];
     }
 
-<<<<<<< HEAD
-    detection_in_image(green_pixels, red_pixels);
-
-
-	// debug_send_uint8_array_to_computer(green_pixels, IMAGE_BUFFER_SIZE);
-	debug_send_for_printlinke_couple_uint8(img_raw_RGB565_pixels, 2 * IMAGE_BUFFER_SIZE);
-=======
     detection_in_image(pixels);
->>>>>>> Extraction_color
 }
 
 

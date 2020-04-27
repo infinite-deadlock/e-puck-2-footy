@@ -25,7 +25,7 @@ void central_control_loop(void)
 	int16_t ball_distance;
 	bool ball_found;
 
-	/*while(1)
+	while(1)
 	{
 		chThdSleepMilliseconds(5000);
 
@@ -66,16 +66,6 @@ void central_control_loop(void)
 		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
 		move_change_state(STATIC);
 	}
-	*/
-	while(1)
-	{
-		chThdSleepMilliseconds(7000);
-		sensors_set_ball_to_be_search();
-		sensors_capture_and_search();
-		ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
-		if(ball_found)
-			chprintf((BaseSequentialStream *)&SD3, "ball ball found\n");
-	}
 }
 
 // local functions
@@ -83,8 +73,8 @@ void central_control_loop(void)
 static int16_t compute_distance(int16_t ball_seen_half_angle)
 {
 	// = BALL_DIAMETER/2/sin((EPUCK2DEG(MIN_HALF_ANGLE_BALL)+i*EPUCK2DEG(ANGLE_TO_DIST_ANGLE_RES))*M_PI/180)
-	static const int16_t precalculated_values[N_PRECALCULATED_ANGLE_TO_DIST_VALUES] =
-	{3503,	3462,	3421,	3382,	3344,	3306,	3269,	3234,	3198,	3164,
+	static const int16_t precalculated_values[N_PRECALCULATED_ANGLE_TO_DIST_VALUES] = {
+	3503,	3462,	3421,	3382,	3344,	3306,	3269,	3234,	3198,	3164,
 	3130,	3097,	3065,	3034,	3003,	2972,	2943,	2914,	2885,	2857,
 	2830,	2803,	2776,	2750,	2725,	2700,	2675,	2651,	2628,	2604,
 	2582,	2559,	2537,	2515,	2494,	2473,	2453,	2432,	2412,	2393,
