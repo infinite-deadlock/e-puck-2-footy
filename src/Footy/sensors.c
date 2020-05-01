@@ -67,9 +67,9 @@ static THD_FUNCTION(watch_IR, arg)
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-    //low_pass filter (moving average)
+    // low_pass filter (moving average)
 	uint16_t samples[SENSORS_NUMBER][IR_N_SAMPLE_AVERAGE] = { 0 };
-	uint8_t next_sample_index = 0;
+	uint8_t next_sample_index = 0;// circular buffer
 	uint32_t sum[SENSORS_NUMBER] = { 0 };
 
     proximity_start();
@@ -77,7 +77,7 @@ static THD_FUNCTION(watch_IR, arg)
 
     while(1)
     {
-    	//read values IR sensors, moving sum
+    	// read values IR sensors, moving sum
     	add_value_sum_buffer(&sum[SENSOR_LEFT], samples[SENSOR_LEFT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT)));
     	add_value_sum_buffer(&sum[SENSOR_LEFT_BACK], samples[SENSOR_LEFT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_BACK)));
     	add_value_sum_buffer(&sum[SENSOR_RIGHT], samples[SENSOR_RIGHT], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT)));
@@ -85,7 +85,7 @@ static THD_FUNCTION(watch_IR, arg)
     	++next_sample_index;
     	next_sample_index %= IR_N_SAMPLE_AVERAGE;
 
-    	//check if triggered
+    	// check if triggered
     	sensors_IR_triggers.left_triggered  = sum[SENSOR_LEFT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
     	sensors_IR_triggers.right_triggered = sum[SENSOR_RIGHT] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE;
     	sensors_IR_triggers.back_triggered  = sum[SENSOR_RIGHT_BACK] >= IR_TRIGGER_VALUE * IR_N_SAMPLE_AVERAGE

@@ -73,7 +73,7 @@ void move_init_threads(void)
 void move_change_state(Move_state new_state)
 {
 	s_move_state = new_state;
-	check_dynamic_triggers(true);
+	check_dynamic_triggers(true); //force to update dynamic state
 }
 
 void move_straight(int16_t distance, int16_t speed)

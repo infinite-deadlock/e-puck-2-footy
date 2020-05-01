@@ -36,9 +36,7 @@ void central_control_loop(void)
 		do
 		{
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
-			// meanwhile, image process can occur
-			 chThdSleepMilliseconds(250);
-			//chThdSleepMilliseconds(1100);
+			 chThdSleepMilliseconds(250
 
 			sensors_capture_and_search();
 			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
@@ -57,8 +55,8 @@ void central_control_loop(void)
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
-        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d epuck units\n", compute_distance(ball_seen_half_angle));
 		ball_distance = compute_distance(ball_seen_half_angle);
+        chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d epuck units\n", ball_distance);
 
 		// retrieve the ball
 		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
