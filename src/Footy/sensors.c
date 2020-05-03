@@ -153,6 +153,7 @@ struct IR_triggers sensors_get_IR_triggers(void)
 {
 	return sensors_IR_triggers;
 }
+
 bool sensors_can_move(void)
 {
 	// doesn't detect the ball because tof captor not horizontal
