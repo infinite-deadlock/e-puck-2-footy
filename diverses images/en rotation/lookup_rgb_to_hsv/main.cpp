@@ -55,7 +55,7 @@ bool check_ball_presence(uint8_t r, uint8_t g, uint8_t b)
     double h,s,v;
     convert_rgb_to_hsv(h,s,v,r,g,b);
 
-    return (s > 0.5 && (h < 0.1 || h > 0.9));
+    return (s > 0.5 && (h < 0.05 || h > 0.9));
 }
 
 //#define NB_COLORS 0xFFFF
