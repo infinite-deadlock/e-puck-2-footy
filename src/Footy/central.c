@@ -36,7 +36,7 @@ void central_control_loop(void)
 		do
 		{
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
-			 chThdSleepMilliseconds(250
+			chThdSleepMilliseconds(250);
 
 			sensors_capture_and_search();
 			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);

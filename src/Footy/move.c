@@ -25,7 +25,6 @@ static BSEMAPHORE_DECL(move_semaphore_interrupt, TRUE);
 static MUTEX_DECL(move_mutex_free_to_move);
 
 // threaded functions
-
 static THD_WORKING_AREA(wa_check_dynamic, 256);
 static THD_FUNCTION(check_dynamic, arg)
 {
@@ -116,15 +115,12 @@ void move_round_about(int16_t radius, int16_t speed)
 
 	duration = (uint32_t)1000*DEG2EPUCK(180)/(EPUCK_ANGULAR_RES/ANGULAR_UNIT)*2/abs(speed_fast_wheel - speed_slow_wheel);	// half circle -> robot must rotate of 180deg around his center
 
-	//chprintf((BaseSequentialStream *)&SD3, "speed_fast_wheel, speed_slow_wheel, speed: %d %d %d\n", speed_fast_wheel, speed_slow_wheel, speed);
-
 	move_rotate(DEG2EPUCK(90), speed);							// rotate to be tangent
 	make_move(speed_fast_wheel, speed_slow_wheel, duration);	// half circle
 	move_rotate(DEG2EPUCK(-90), speed);							// face center
 }
 
 // local functions
-
 static void check_dynamic_triggers(bool force_update)
 {
     static struct IR_triggers previous_triggers = {0};

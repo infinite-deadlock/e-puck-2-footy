@@ -1,11 +1,15 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
+#include <cassert>
 
 using namespace std;
 
 void convert_rgb_to_hsv(double & h, double & s, double & v, uint8_t r_int, uint8_t g_int, uint8_t b_int)
 {
+    // adapté de https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
+    // consulté le 27.04.2020
+    // David H
     double min, max, delta;
     double r(r_int), g(g_int), b(b_int);
     r /= 31.;
@@ -65,10 +69,10 @@ bool check_ball_presence(uint8_t r, uint8_t g, uint8_t b)
 
 int main()
 {
-    static uint8_t lookup_check_ball_presence[NB_LOOKUP_PRESENCE_CASE];
+    static uint8_t lookup_check_ball_presence[NB_LOOKUP_PRESENCE_CASE] = {0};
     for(unsigned int i = 0 ; i < NB_LOOKUP_PRESENCE_CASE ; i++)
     {
-        lookup_check_ball_presence[i] = 0;
+        assert(lookup_check_ball_presence[i] == 0);
         for(unsigned int j = 0 ; j < MAX_VALUE_CASE ; ++j)
         {
             uint16_t tmp = (i << MASK_LOOKUP_CASE_LENGTH) | j;
@@ -77,7 +81,11 @@ int main()
             g = (tmp >> 5) & 63;
             b = tmp & 31;
 
-            lookup_check_ball_presence[i] |= check_ball_presence(r, g, b) << j;
+            //cout << "tmp: " << tmp << " r: " << (int)r << " g: " << (int)g << " b: " << (int)b << " " << (int)check_ball_presence(r, g, b) << endl;
+            if(check_ball_presence(r, g, b))
+                lookup_check_ball_presence[i] |= 1 << j;
+            else
+                lookup_check_ball_presence[i] |= 0 << j;
         }
     }
 
