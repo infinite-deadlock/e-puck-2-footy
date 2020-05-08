@@ -14,10 +14,11 @@
 #define IMAGE_BUFFER_SIZE	PO8030_MAX_WIDTH			// size of the image acquired, in RGB565 pixel
 #define IMAGE_LINE_HEIGHT	(PO8030_MAX_HEIGHT / 2)		// captured line height
 
-#define BALL_MIN_SIZE_ACCEPT            40
 #define MASK_LOOKUP_CASE_LENGTH         3
 #define MASK_LOOKUP_CASE                ((1 << MASK_LOOKUP_CASE_LENGTH) - 1)
 #define NB_LOOKUP_PRESENCE_CASE         (0xFFFF >> MASK_LOOKUP_CASE_LENGTH)
+#define BALL_PIXEL_VALUE				1 // value given to a pixel corresponding to the ball
+#define N_PIXEL_AVERAGE					20 	// low-pass filter
 
 #define	MOVE_SECURITY_SPACE				50
 
@@ -50,8 +51,9 @@ static struct IR_triggers sensors_IR_triggers;
 // local function prototypes
 static void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
 static int16_t compute_angle_from_image(int16_t pos);
+static uint8_t check_ball_presence_with_lookup(uint16_t pixel);
 static void analyze_image(void);
-static void detection_in_image(uint16_t * pixels);
+static void detection_in_image(bool * ball_pixels);
 
 // threaded functions
 
@@ -205,7 +207,7 @@ static int16_t compute_angle_from_image(int16_t pos)
 	return pos >= IMAGE_BUFFER_SIZE/2 ? -precalculated_values[pos-IMAGE_BUFFER_SIZE/2] : precalculated_values[IMAGE_BUFFER_SIZE/2-pos-1];
 }
 
-bool check_ball_presence_with_lookup(uint16_t pixel)
+static uint8_t check_ball_presence_with_lookup(uint16_t pixel)
 {
 	static const uint8_t lookup_check_ball_presence[NB_LOOKUP_PRESENCE_CASE] = {
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -795,14 +797,22 @@ bool check_ball_presence_with_lookup(uint16_t pixel)
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 	  0};
 
-    return ((lookup_check_ball_presence[pixel >> MASK_LOOKUP_CASE_LENGTH] & (1 << (pixel & MASK_LOOKUP_CASE))) != 0);
+	if((lookup_check_ball_presence[pixel >> MASK_LOOKUP_CASE_LENGTH] & (1 << (pixel & MASK_LOOKUP_CASE))) != 0)
+		return BALL_PIXEL_VALUE;
+	else
+		return 0;
 }
 
 static void analyze_image(void)
 {
 	static uint8_t * img_raw_RGB565_pixels = NULL;
+	static bool ball_pixels[IMAGE_BUFFER_SIZE] = {0};
 
-	static uint16_t pixels[IMAGE_BUFFER_SIZE] = {0};
+    // low_pass filter (moving average)
+	uint8_t circ_buf[N_PIXEL_AVERAGE] = { 0 };
+	uint8_t next_value_index = 0;// circular buffer
+	uint16_t sum = 0;
+
 
 	// get the pointer to the array filled with the last image in RGB565
     img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
@@ -810,47 +820,56 @@ static void analyze_image(void)
     for(uint16_t i = 0, j; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
     {
     	j = s_sensors_clockwise_search ? i/2 : IMAGE_BUFFER_SIZE - 1 - i/2;	// revert buffer if rotation is counterclockwise
-    	pixels[j] = (((uint16_t)img_raw_RGB565_pixels[i]) << 8)| img_raw_RGB565_pixels[i + 1];
+
+    	// check if pixel belongs to the ball or not (with moving average
+    	sum -= circ_buf[next_value_index];
+    	circ_buf[next_value_index] = check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i]) << 8)| img_raw_RGB565_pixels[i + 1]);
+    	sum += circ_buf[next_value_index];
+    	next_value_index++;
+    	next_value_index%=N_PIXEL_AVERAGE;
+
+    	ball_pixels[j] = sum >= BALL_PIXEL_VALUE*(j >= N_PIXEL_AVERAGE-1 ? N_PIXEL_AVERAGE : j+1)/2;// low-pass filter, average triggers at half value of BALL_PIXEL_VALUE
     }
 
-    detection_in_image(pixels);
+    detection_in_image(ball_pixels);
 }
 
 
-static void detection_in_image(uint16_t * pixels)
+static void detection_in_image(bool * ball_pixels)
 {
 	bool last_fall_found = false;
+	bool last_ball_pixel = false;// for rising or falling edge detection
 	int16_t last_fall_angle;
 	uint16_t continuity_start;
 
 	// will search for continuous frames of pixels potentially corresponding to the ball.
 	for(uint16_t i = 0 ; i < IMAGE_BUFFER_SIZE ; ++i)
 	{
-		if(check_ball_presence_with_lookup(pixels[i]))
+		if(last_ball_pixel != ball_pixels[i]) // edge
 		{
-			if(!last_fall_found)	// begin of a continuous frame
+			if(ball_pixels[i])	// begin of a continuous frame
 			{
 				last_fall_found = true;
 				continuity_start = i;
 				last_fall_angle = compute_angle_from_image(i);
 				chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
 			}
-		}
-		else if(last_fall_found)
-		{
-			// end of a continuous frame
-			if(i - continuity_start > BALL_MIN_SIZE_ACCEPT)
+			else if(last_fall_found)
 			{
-				sensors_ball_found = true;
-				sensors_ball_angle = (compute_angle_from_image(i) + last_fall_angle) / 2;
-				sensors_ball_seen_half_angle = last_fall_angle-sensors_ball_angle;
+				if(i - continuity_start > BALL_MIN_SIZE_ACCEPT)  // end of a continuous frame
+				{
+					sensors_ball_found = true;
+					sensors_ball_angle = (compute_angle_from_image(i) + last_fall_angle) / 2;
+					sensors_ball_seen_half_angle = last_fall_angle-sensors_ball_angle;
 
-				chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %d and %d\n", last_fall_angle, compute_angle_from_image(i));
-				chprintf((BaseSequentialStream *)&SD3, "angle is %d\n", sensors_ball_angle);
+					chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %d and %d\n", last_fall_angle, compute_angle_from_image(i));
+					chprintf((BaseSequentialStream *)&SD3, "angle is %d\n", sensors_ball_angle);
+				}
+
+				last_fall_found = false;
 			}
-
-			last_fall_found = false;
 		}
+		last_ball_pixel = ball_pixels[i];
 	}
 
     if(sensors_ball_found && !s_sensors_clockwise_search)
