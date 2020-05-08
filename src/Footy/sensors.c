@@ -18,7 +18,7 @@
 #define MASK_LOOKUP_CASE                ((1 << MASK_LOOKUP_CASE_LENGTH) - 1)
 #define NB_LOOKUP_PRESENCE_CASE         (0xFFFF >> MASK_LOOKUP_CASE_LENGTH)
 #define BALL_PIXEL_VALUE				1 // value given to a pixel corresponding to the ball
-#define N_PIXEL_AVERAGE					20 	// low-pass filter
+#define N_PIXEL_AVERAGE					31 	// low-pass filter, must be odd
 
 #define	MOVE_SECURITY_SPACE				50
 
@@ -49,7 +49,8 @@ static int16_t sensors_ball_seen_half_angle;
 static struct IR_triggers sensors_IR_triggers;
 
 // local function prototypes
-static void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
+static void add_value_sum_buffer_8(uint16_t * sum, uint8_t * buffer, uint8_t buffer_size, uint8_t *next_value_index, uint8_t new_value);
+static void add_value_sum_buffer_16(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value);
 static int16_t compute_angle_from_image(int16_t pos);
 static uint8_t check_ball_presence_with_lookup(uint16_t pixel);
 static void analyze_image(void);
@@ -75,10 +76,10 @@ static THD_FUNCTION(watch_IR, arg)
     while(1)
     {
     	// read values IR sensors, moving sum
-    	add_value_sum_buffer(&sum[SENSOR_LEFT], samples[SENSOR_LEFT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT)));
-    	add_value_sum_buffer(&sum[SENSOR_LEFT_BACK], samples[SENSOR_LEFT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_BACK)));
-    	add_value_sum_buffer(&sum[SENSOR_RIGHT], samples[SENSOR_RIGHT], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT)));
-    	add_value_sum_buffer(&sum[SENSOR_RIGHT_BACK], samples[SENSOR_RIGHT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT_BACK)));
+    	add_value_sum_buffer_16(&sum[SENSOR_LEFT], samples[SENSOR_LEFT], next_sample_index, abs(get_calibrated_prox(PROX_LEFT)));
+    	add_value_sum_buffer_16(&sum[SENSOR_LEFT_BACK], samples[SENSOR_LEFT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_LEFT_BACK)));
+    	add_value_sum_buffer_16(&sum[SENSOR_RIGHT], samples[SENSOR_RIGHT], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT)));
+    	add_value_sum_buffer_16(&sum[SENSOR_RIGHT_BACK], samples[SENSOR_RIGHT_BACK], next_sample_index, abs(get_calibrated_prox(PROX_RIGHT_BACK)));
     	++next_sample_index;
     	next_sample_index %= IR_N_SAMPLE_AVERAGE;
 
@@ -161,7 +162,15 @@ bool sensors_can_move(void)
 
 // local functions
 
-static void add_value_sum_buffer(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value)
+static void add_value_sum_buffer_8(uint16_t * sum, uint8_t * buffer, uint8_t buffer_size, uint8_t *next_value_index, uint8_t new_value)
+{
+	*sum -= buffer[*next_value_index];
+	buffer[*next_value_index] = new_value;
+	*next_value_index = (1+*next_value_index)%buffer_size;
+	*sum += new_value;
+}
+
+static void add_value_sum_buffer_16(uint32_t * sum, uint16_t * buffer, uint8_t next_value_index, uint16_t new_value)
 {
 	*sum -= buffer[next_value_index];
 	buffer[next_value_index] = new_value;
@@ -817,18 +826,23 @@ static void analyze_image(void)
 	// get the pointer to the array filled with the last image in RGB565
     img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
-    for(uint16_t i = 0, j; i < 2 * IMAGE_BUFFER_SIZE ; i += 2)
+    for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
     {
-    	j = s_sensors_clockwise_search ? i/2 : IMAGE_BUFFER_SIZE - 1 - i/2;	// revert buffer if rotation is counterclockwise
+    	// check if pixel belongs to the ball or not (with moving average)
+    	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]));
 
-    	// check if pixel belongs to the ball or not (with moving average
-    	sum -= circ_buf[next_value_index];
-    	circ_buf[next_value_index] = check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i]) << 8)| img_raw_RGB565_pixels[i + 1]);
-    	sum += circ_buf[next_value_index];
-    	next_value_index++;
-    	next_value_index%=N_PIXEL_AVERAGE;
+    	if(i < N_PIXEL_AVERAGE/2)// average is shorten at the beginning
+    		ball_pixels[i] = sum > BALL_PIXEL_VALUE*(i+1)/2;
+    	else if(i >= N_PIXEL_AVERAGE-1)
+			ball_pixels[i-N_PIXEL_AVERAGE/2] = sum > BALL_PIXEL_VALUE*N_PIXEL_AVERAGE/2;// average centered on past values
+    }
 
-    	ball_pixels[j] = sum >= BALL_PIXEL_VALUE*(j >= N_PIXEL_AVERAGE-1 ? N_PIXEL_AVERAGE : j+1)/2;// low-pass filter, average triggers at half value of BALL_PIXEL_VALUE
+    //end of buffer was not filled, as average is centered
+    for(uint8_t i = N_PIXEL_AVERAGE; i > 0; --i)
+    {
+    	if(i <= N_PIXEL_AVERAGE/2)
+			ball_pixels[IMAGE_BUFFER_SIZE-i] = sum > BALL_PIXEL_VALUE*i/2;// value at the end have more weight, to not miss the end of the ball -> shorten the average
+    	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, 0);// discard values as the average is shortened
     }
 
     detection_in_image(ball_pixels);
@@ -871,9 +885,6 @@ static void detection_in_image(bool * ball_pixels)
 		}
 		last_ball_pixel = ball_pixels[i];
 	}
-
-    if(sensors_ball_found && !s_sensors_clockwise_search)
-    	sensors_ball_angle *= -1;
 
     // invert next detection
     if(s_sensors_invert_rotation)
