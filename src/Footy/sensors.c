@@ -18,7 +18,7 @@
 #define MASK_LOOKUP_CASE                ((1 << MASK_LOOKUP_CASE_LENGTH) - 1)
 #define NB_LOOKUP_PRESENCE_CASE         (0xFFFF >> MASK_LOOKUP_CASE_LENGTH)
 #define BALL_PIXEL_VALUE				1 // value given to a pixel corresponding to the ball
-#define N_PIXEL_AVERAGE					31 	// low-pass filter, must be odd
+#define N_PIXEL_AVERAGE					11 	// low-pass filter, must be odd
 
 #define	MOVE_SECURITY_SPACE				50
 
@@ -833,7 +833,7 @@ static void analyze_image(void)
 	// get the pointer to the array filled with the last image in RGB565
     img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
-    /*for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
+    for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
     {
     	// check if pixel belongs to the ball or not (with moving average)
     	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]));
@@ -850,12 +850,12 @@ static void analyze_image(void)
     	if(i <= N_PIXEL_AVERAGE/2)
 			ball_pixels[IMAGE_BUFFER_SIZE-i] = sum > BALL_PIXEL_VALUE*i/2;// value at the end have more weight, to not miss the end of the ball -> shorten the average
     	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, 0);// discard values as the average is shortened
-    }*/
+    }
 
-    for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
+    /*for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
     {
     	ball_pixels[i] = check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]);
-    }
+    }*/
     detection_in_image(ball_pixels);
 }
 
