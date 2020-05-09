@@ -938,7 +938,7 @@ void launch_detection_in_image(vector<uint16_t> & image)
 
 int main()
 {
-    vector<vector<uint16_t>> tab_images = extract_tab_images("diverses images de fond.txt");
+    vector<vector<uint16_t>> tab_images = extract_tab_images("avec mauvais eclairage/fond blanc.txt");
     export_tab_images_to_csv(tab_images);
 
     for(size_t i = 0 ; i < tab_images.size() ; ++i)
