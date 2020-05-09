@@ -216,7 +216,10 @@ static int16_t compute_angle_from_image(int16_t pos)
 		764,	766,	768,	771,	773,	775,	778,	780,	782,	785,
 		787,	789,	791,	794,	796,	798,	801,	803,	805,	807};
 
-	return pos >= IMAGE_BUFFER_SIZE/2 ? -precalculated_values[pos-IMAGE_BUFFER_SIZE/2] : precalculated_values[IMAGE_BUFFER_SIZE/2-pos-1];
+	if(pos >= IMAGE_BUFFER_SIZE/2)// angle reference is at half buffer position
+		return -precalculated_values[pos-IMAGE_BUFFER_SIZE/2];
+	else
+		return precalculated_values[IMAGE_BUFFER_SIZE/2-pos-1];
 }
 
 static uint8_t check_ball_presence_with_lookup(uint16_t pixel)
