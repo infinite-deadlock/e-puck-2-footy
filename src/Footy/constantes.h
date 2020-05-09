@@ -20,7 +20,7 @@
 #define DEG2EPUCK(a)				((int16_t)((a)/ANGULAR_UNIT))
 
 #define BALL_DIAMETER				MM2EPUCK(37)			// ball diameter, in e-puck units
-#define ROTATION_MARGIN				MM2EPUCK(40)			// distance from ball when rotating around, in epuck units
+#define ROTATION_MARGIN				MM2EPUCK(60)			// distance from ball when rotating around, in epuck units
 #define ROTATION_RADIUS				(BALL_DIAMETER/2+ROTATION_MARGIN)
 
 #define MINIMALE_DISTANCE_BALL					60		// in mm, from camera to ball center

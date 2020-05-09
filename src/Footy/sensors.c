@@ -103,6 +103,9 @@ void sensors_start(void)
 	if(po8030_advanced_config(FORMAT_RGB565, 0, IMAGE_LINE_HEIGHT, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1) != MSG_OK)
 		chprintf((BaseSequentialStream *)&SD3, "Error po8030_advanced_config\n");
 
+	if(po8030_set_awb(0) != MSG_OK)
+		chprintf((BaseSequentialStream *)&SD3, "Error po8030_set_awb\n");
+
 	dcmi_enable_double_buffering();
 	dcmi_set_capture_mode(CAPTURE_ONE_SHOT);
 	dcmi_prepare();
