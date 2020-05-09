@@ -860,7 +860,7 @@ static void analyze_image(void)
 static void detection_in_image(bool * ball_pixels)
 {
 	bool last_fall_found = false;
-	bool last_ball_pixel = false;// for rising or falling edge detection
+	bool last_ball_pixel = true;// for rising or falling edge detection
 	int16_t last_fall_angle;
 	uint16_t continuity_start;
 
