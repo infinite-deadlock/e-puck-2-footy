@@ -830,7 +830,7 @@ static void analyze_image(void)
 	// get the pointer to the array filled with the last image in RGB565
     img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
-    for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
+    /*for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
     {
     	// check if pixel belongs to the ball or not (with moving average)
     	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]));
@@ -847,8 +847,12 @@ static void analyze_image(void)
     	if(i <= N_PIXEL_AVERAGE/2)
 			ball_pixels[IMAGE_BUFFER_SIZE-i] = sum > BALL_PIXEL_VALUE*i/2;// value at the end have more weight, to not miss the end of the ball -> shorten the average
     	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, 0);// discard values as the average is shortened
-    }
+    }*/
 
+    for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
+    {
+    	ball_pixels[i] = check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]);
+    }
     detection_in_image(ball_pixels);
 }
 
@@ -882,6 +886,7 @@ static void detection_in_image(bool * ball_pixels)
 
 					chprintf((BaseSequentialStream *)&SD3, "ball is located in between: %d and %d\n", last_fall_angle, compute_angle_from_image(i));
 					chprintf((BaseSequentialStream *)&SD3, "angle is %d\n", sensors_ball_angle);
+					chprintf((BaseSequentialStream *)&SD3, "half-angle is %d\n", sensors_ball_seen_half_angle);
 				}
 
 				last_fall_found = false;
