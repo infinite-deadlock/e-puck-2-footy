@@ -28,7 +28,7 @@
 #define ROTATION_MARGIN				MM2EPUCK(60)			// distance from ball when rotating around, in epuck units
 #define ROTATION_RADIUS				(BALL_DIAMETER/2+ROTATION_MARGIN)
 
-#define MINIMALE_DISTANCE_BALL					74		// in mm, from camera to ball center
+#define MINIMALE_DISTANCE_BALL					84		// in mm, from camera to ball center
 //#define MAX_HALF_ANGLE_BALL					DEG2EPUCK(asin(BALL_DIAMETER/2/(MINIMALE_DISTANCE_BALL/correction_factor))*180/M_PI), correction_factor = (a+-sqrt(a^2-4*b*MINIMALE_DISTANCE_BALL))/2, a and b are correction factors
 #define MAX_HALF_ANGLE_BALL						645		// in epuck units
 //#define MIN_HALF_ANGLE_BALL					DEG2EPUCK(asin(BALL_DIAMETER/2/(MAX_RADIUS_FIELD/correction_factor))*180/M_PI), correction_factor = 1.583-4e-3*d+4e-8*d^2 = 0.606
