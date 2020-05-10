@@ -3,6 +3,11 @@
 
 #include <math.h>
 
+/*
+ * general purpose constants
+ * original alternative expressions are also provided in comments
+ */
+
 #define WHEEL_DIAMETER				41			// wheel_diameter, in mm (official 41.2)
 #define WHEEL_DISTANCE				53			// in mm
 #define MOTOR_STEPS_PER_TURN		1000

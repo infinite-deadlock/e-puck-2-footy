@@ -17,14 +17,17 @@
 #define MASK_LOOKUP_CASE_LENGTH         3
 #define MASK_LOOKUP_CASE                ((1 << MASK_LOOKUP_CASE_LENGTH) - 1)
 #define NB_LOOKUP_PRESENCE_CASE         (0xFFFF >> MASK_LOOKUP_CASE_LENGTH)
-#define BALL_PIXEL_VALUE				1 // value given to a pixel corresponding to the ball
+
+#define BALL_PIXEL_VALUE				1 	// value given to a pixel corresponding to the ball
 #define N_PIXEL_AVERAGE					11 	// low-pass filter, must be odd
 
-#define	MOVE_SECURITY_SPACE				50
+#define	MOVE_SECURITY_SPACE				50	// never move when an obstacle is within this range
 
 #define IR_SAMPLE_PERIOD				200
 #define IR_N_SAMPLE_AVERAGE				5 	// low-pass filter
 #define IR_TRIGGER_VALUE				40
+
+// id IR sensor
 #define PROX_LEFT						5
 #define PROX_RIGHT						2
 #define PROX_RIGHT_BACK					3
@@ -43,8 +46,8 @@ typedef enum {
 static bool s_sensors_clockwise_search = true;
 static bool s_sensors_invert_rotation = false;
 static bool sensors_ball_found = false;
-static int16_t sensors_ball_angle;
-static int16_t sensors_ball_seen_half_angle;
+static int16_t sensors_ball_angle;				// angle of the ball
+static int16_t sensors_ball_seen_half_angle;	// half the angle the ball makes on the image
 
 static struct IR_triggers sensors_IR_triggers;
 
@@ -103,6 +106,7 @@ void sensors_start(void)
 	if(po8030_advanced_config(FORMAT_RGB565, 0, IMAGE_LINE_HEIGHT, IMAGE_BUFFER_SIZE, 2, SUBSAMPLING_X1, SUBSAMPLING_X1) != MSG_OK)
 		chprintf((BaseSequentialStream *)&SD3, "Error po8030_advanced_config\n");
 
+	// deactivate auto-balance
 	if(po8030_set_awb(0) != MSG_OK)
 		chprintf((BaseSequentialStream *)&SD3, "Error po8030_set_awb\n");
 
@@ -157,14 +161,12 @@ struct IR_triggers sensors_get_IR_triggers(void)
 
 bool sensors_can_move(void)
 {
-	// doesn't detect the ball because tof captor not horizontal
-	// debug_send_uint32_to_computer(VL53L0X_get_dist_mm());
+	// cannot be use to detect the ball because TOF sensor is not horizontal
 
 	return VL53L0X_get_dist_mm() > MOVE_SECURITY_SPACE;	// VL53L0X is now an opaque type outside this module.
 }
 
 // local functions
-
 static void add_value_sum_buffer_8(uint16_t * sum, uint8_t * buffer, uint8_t buffer_size, uint8_t *next_value_index, uint8_t new_value)
 {
 	*sum -= buffer[*next_value_index];
@@ -224,6 +226,7 @@ static int16_t compute_angle_from_image(int16_t pos)
 
 static uint8_t check_ball_presence_with_lookup(uint16_t pixel)
 {
+	// RGB565 -> HSV -> selection: (s > 0.6 && (h < 0.05 || h > 0.85));
 	static const uint8_t lookup_check_ball_presence[NB_LOOKUP_PRESENCE_CASE] = {
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
 	  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
@@ -813,6 +816,7 @@ static uint8_t check_ball_presence_with_lookup(uint16_t pixel)
 	  0};
 
 
+	// some bit manipulation to extract information from byte: 8 bools in a uint8_t
 	if((lookup_check_ball_presence[pixel >> MASK_LOOKUP_CASE_LENGTH] & (1 << (pixel & MASK_LOOKUP_CASE))) != 0)
 		return BALL_PIXEL_VALUE;
 	else
@@ -825,7 +829,7 @@ static void analyze_image(void)
 	static bool ball_pixels[IMAGE_BUFFER_SIZE] = {0};
 
     // low_pass filter (moving average)
-	uint8_t circ_buf[N_PIXEL_AVERAGE] = { 0 };
+	uint8_t circ_buf[N_PIXEL_AVERAGE] = {0};
 	uint8_t next_value_index = 0;// circular buffer
 	uint16_t sum = 0;
 
@@ -833,37 +837,34 @@ static void analyze_image(void)
 	// get the pointer to the array filled with the last image in RGB565
     img_raw_RGB565_pixels = dcmi_get_last_image_ptr();
 
+    // moving avergae
     for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
     {
     	// check if pixel belongs to the ball or not (with moving average)
     	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]));
 
-    	if(i < N_PIXEL_AVERAGE/2)// average is shorten at the beginning
+    	if(i < N_PIXEL_AVERAGE/2)	// average is shorten at the beginning
     		ball_pixels[i] = sum > BALL_PIXEL_VALUE*(i+1)/2;
     	else if(i >= N_PIXEL_AVERAGE-1)
-			ball_pixels[i-N_PIXEL_AVERAGE/2] = sum > BALL_PIXEL_VALUE*N_PIXEL_AVERAGE/2;// average centered on past values
+			ball_pixels[i-N_PIXEL_AVERAGE/2] = sum > BALL_PIXEL_VALUE*N_PIXEL_AVERAGE/2;	// average centered on past values
     }
 
-    //end of buffer was not filled, as average is centered
+    // end of buffer was not filled, as average is centered
     for(uint8_t i = N_PIXEL_AVERAGE; i > 0; --i)
     {
     	if(i <= N_PIXEL_AVERAGE/2)
-			ball_pixels[IMAGE_BUFFER_SIZE-i] = sum > BALL_PIXEL_VALUE*i/2;// value at the end have more weight, to not miss the end of the ball -> shorten the average
-    	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, 0);// discard values as the average is shortened
+			ball_pixels[IMAGE_BUFFER_SIZE-i] = sum > BALL_PIXEL_VALUE*i/2;				// value at the end have more weight, to not miss the end of the ball -> shorten the average
+    	add_value_sum_buffer_8(&sum, circ_buf, N_PIXEL_AVERAGE, &next_value_index, 0);	// discard values as the average is shortened
     }
 
-    /*for(uint16_t i = 0; i < IMAGE_BUFFER_SIZE; ++i)
-    {
-    	ball_pixels[i] = check_ball_presence_with_lookup((((uint16_t)img_raw_RGB565_pixels[i*2]) << 8)| img_raw_RGB565_pixels[i*2 + 1]);
-    }*/
+    // final search the ball
     detection_in_image(ball_pixels);
 }
-
 
 static void detection_in_image(bool * ball_pixels)
 {
 	bool last_fall_found = false;
-	bool last_ball_pixel = true;// for rising or falling edge detection
+	bool last_ball_pixel = true;	// for rising or falling edge detection
 	int16_t last_fall_angle;
 	uint16_t continuity_start;
 
@@ -877,7 +878,6 @@ static void detection_in_image(bool * ball_pixels)
 				last_fall_found = true;
 				continuity_start = i;
 				last_fall_angle = compute_angle_from_image(i);
-				chprintf((BaseSequentialStream *)&SD3, "last fall found\n");
 			}
 			else if(last_fall_found)
 			{

@@ -26,8 +26,10 @@ void central_control_loop(void)
 
 	while(1)
 	{
+		// do not start right away for reasons of comfort
 		chThdSleepMilliseconds(5000);
 
+		// prepare to search a ball
 		ball_found = false;
 		sensors_set_ball_to_be_search();
 		move_change_state(ROTATION);
@@ -35,15 +37,13 @@ void central_control_loop(void)
 		do
 		{
 			// wait for the end of the turn plus some inertia stability (e-puck is shaky)
-<<<<<<< HEAD
 			chThdSleepMilliseconds(250);
-=======
-			 chThdSleepMilliseconds(250);
->>>>>>> final1
 
+			// try to find a ball
 			sensors_capture_and_search();
 			ball_found = sensors_is_ball_found(&ball_angle, &ball_seen_half_angle);
 
+			// keep trying to find a ball if not yet found
 			if(!ball_found)
 			{
 				if(sensors_search_clockwise())
@@ -53,8 +53,10 @@ void central_control_loop(void)
 			}
 		}while(!ball_found);
 
+		// aim for the ball
 		move_rotate(ball_angle, DEFAULT_SPEED);
 
+		// get ready to go
 		move_change_state(TRANSLATION);
 		chThdSleepMilliseconds(1000);
 
@@ -62,15 +64,14 @@ void central_control_loop(void)
         chprintf((BaseSequentialStream *)&SD3, "ball distance from robot %d epuck units\n", ball_distance);
 
 		// retrieve the ball
-		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
-		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
-		move_straight(ball_distance+ROTATION_RADIUS, CHARGE_SPEED);
-		move_change_state(STATIC);
+		move_straight(ball_distance - ROTATION_RADIUS, DEFAULT_SPEED);	// get to the ball
+		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);				// get around the ball
+		move_straight(ball_distance + ROTATION_RADIUS, CHARGE_SPEED);	// hit it !
+		move_change_state(STATIC);		// make ready to restart
 	}
 }
 
 // local functions
-
 static int16_t compute_distance(int16_t ball_seen_half_angle)
 {
 	// = BALL_DIAMETER/2/sin((EPUCK2DEG(MIN_HALF_ANGLE_BALL)+i*EPUCK2DEG(ANGLE_TO_DIST_ANGLE_RES))*M_PI/180)

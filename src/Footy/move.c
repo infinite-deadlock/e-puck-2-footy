@@ -6,13 +6,12 @@
 #include "sensors.h"
 
 #define BOOST_FACTOR			2
-
 #define OBSTACLE_DETECT_DELAY	150	// in ms
 
 // static global variables
-static Move_state s_move_state;
-static bool s_boost_speed;
-static bool s_clockwise;
+static Move_state s_move_state;		// how should the robot move
+static bool s_boost_speed;			// how fast should the robot move
+static bool s_clockwise;			// which way should the robot move
 
 // local functions prototypes
 static void check_dynamic_triggers(bool force_update);
@@ -72,7 +71,7 @@ void move_init_threads(void)
 void move_change_state(Move_state new_state)
 {
 	s_move_state = new_state;
-	check_dynamic_triggers(true); //force to update dynamic state
+	check_dynamic_triggers(true); // force to update dynamic state
 }
 
 void move_straight(int16_t distance, int16_t speed)
@@ -127,7 +126,7 @@ static void check_dynamic_triggers(bool force_update)
     static struct IR_triggers current_triggers;
 
 	current_triggers = sensors_get_IR_triggers();
-	switch(s_move_state)
+	switch(s_move_state)	// adapt dynamic to the movement
 	{
 		case	TRANSLATION:
 			if(force_update || current_triggers.back_triggered != previous_triggers.back_triggered)
@@ -192,7 +191,7 @@ static void make_move(int16_t speed_left, int16_t speed_right, uint32_t duration
 		chMtxUnlock(&move_mutex_free_to_move);
 	}while(duration > time_moved);	// while move not finished
 
-	//end move
+	// end move
 	left_motor_set_speed(0);
 	right_motor_set_speed(0);
 }
