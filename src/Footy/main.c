@@ -15,6 +15,7 @@
 #include "move.h"
 #include "central.h"
 
+// global variables with Eliot's permission
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);

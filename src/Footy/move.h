@@ -10,7 +10,7 @@
 extern "C" {
 #endif
 
-//enumerations
+// enumerations
 
 typedef enum{
 	STATIC = 0,
