@@ -31,7 +31,7 @@
 #define N_PRECALCULATED_ANGLE_TO_DIST_VALUES 	(MAX_HALF_ANGLE_BALL-MIN_HALF_ANGLE_BALL)/ANGLE_TO_DIST_ANGLE_RES+1
 //#define EPUCK_SEARCH_ROTATION_ANGLE 			DEG2EPUCK(45)-2*MAX_HALF_ANGLE_BALL // condition to have at least once the ball fully in sight
 #define EPUCK_SEARCH_ROTATION_ANGLE 			DEG2EPUCK(9)	// in epuck units
-//#define BALL_MIN_SIZE_ACCEPT            (int16_t)(640/tan(22.5)*tan(asin(BALL_DIAMETER/2/MAX_RADIUS_FIELD*2)))// security value of double the filed size
-#define BALL_MIN_SIZE_ACCEPT            31
+//#define BALL_MIN_SIZE_ACCEPT            		(int16_t)(640/tan(22.5)*tan(asin(BALL_DIAMETER/2/MAX_RADIUS_FIELD*2)))// security value of double the filed size
+#define BALL_MIN_SIZE_ACCEPT            		31
 
 #endif // CONSTANTES_H_

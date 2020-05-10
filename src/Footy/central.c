@@ -10,14 +10,13 @@
 #include "sensors.h"
 
 // local defines
-#define DEFAULT_SPEED	MOTOR_SPEED_LIMIT / 4
+#define DEFAULT_SPEED	(MOTOR_SPEED_LIMIT / 4)
+#define CHARGE_SPEED	(MOTOR_SPEED_LIMIT / 3)
 
 // local functions prototypes
-
 static int16_t compute_distance(int16_t ball_seen_half_angle);
 
 // functions
-
 void central_control_loop(void)
 {
 	int16_t ball_angle = 0;
@@ -61,7 +60,7 @@ void central_control_loop(void)
 		// retrieve the ball
 		move_straight(ball_distance-ROTATION_RADIUS, DEFAULT_SPEED);
 		move_round_about(ROTATION_RADIUS, DEFAULT_SPEED);
-		move_straight(ball_distance+ROTATION_RADIUS, DEFAULT_SPEED);
+		move_straight(ball_distance+ROTATION_RADIUS, CHARGE_SPEED);
 		move_change_state(STATIC);
 	}
 }
